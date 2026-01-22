@@ -36,12 +36,9 @@ export default function PersonaChat() {
   const handleSend = () => {
     if (!message.trim()) return;
 
-    // Mock backend response for demonstration
-    // In real app, call API here, then setMessages and setInsights based on response
-    const mockResponse = message; // echo for now, replace with actual response
+  
     setMessages([...messages, mockResponse]);
 
-    // Mock insights update
     if (insights.length === 0) {
       setInsights([
         {
