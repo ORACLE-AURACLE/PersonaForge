@@ -1,3 +1,17 @@
+@font-face {
+  font-family: 'Arupala Grotesk';
+  src: url('./assets/fonts/arupala/ArupalaGroteskTrial-Bold.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Helvetica Custom';
+  src: url('./assets/fonts/helvetica/Helvetica.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+  
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -5,7 +19,7 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #FAF6ED;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -24,10 +38,9 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  font-family: 'Helvetica Custom', sans-serif;
 }
 
 h1 {
@@ -57,7 +70,7 @@ button:focus-visible {
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
-    background-color: #ffffff;
+    background-color: #FAF6ED;
   }
   a:hover {
     color: #747bff;
