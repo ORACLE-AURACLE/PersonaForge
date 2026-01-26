@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom"; // Importing from the parent directory
-import logo from "../assets/images/PersonaForge.svg";
+import logo from "../assets/images/Main-Logo.svg";
+
 import rectImg from "../assets/images/Rectangle.svg";
 
 export default function Home() {
@@ -21,10 +22,11 @@ export default function Home() {
       </div>
 
       <nav className="nav-wrapper">
-        <img src={logo} alt="PersonaForge" className="logo-img" />
+        <img src={logo} alt="PersonaForge" className="logo" />
       </nav>
 
-      <div className="hero-content">
+      <div className="heroContent">
+
         <h1>Talk to real people before they exist</h1>
         <p>
           Choose a realistic persona, test your idea, and understand why they

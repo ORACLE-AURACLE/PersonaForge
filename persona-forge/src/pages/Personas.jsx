@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/images/PersonaForge.svg";
+
+import logo from "../assets/images/Main-Logo.svg";
+
 import "../App.css";
 
 export default function Personas() {
@@ -9,14 +11,16 @@ export default function Personas() {
     <section className="persona-page">
       {/* Top left stack */}
       <div className="persona-top">
-        <img src={logo} alt="PersonaForge" className="logo-img" />
-        <button className="back-btn" onClick={() => navigate(-1)}>
+
+        <img src={logo} alt="PersonaForge" className="logo" />
+      </div>
+      <button className="back-btn" onClick={() => navigate(-1)}>
           ← Back
         </button>
-      </div>
 
       {/* Header */}
-      <div className="persona-content">
+      <div className="personaContent">
+
         <div className="persona-header">
           <h1>Choose a Persona</h1>
           <p>
@@ -28,7 +32,8 @@ export default function Personas() {
         {/* Cards */}
         <div className="persona-grid">
           <div
-            className="persona-card"
+            className="personaCard"
+
             onClick={() => navigate("/personas/amaka")}
           >
             <h3>Amaka Okonkwo</h3>
@@ -47,7 +52,9 @@ export default function Personas() {
           </div>
 
           <div
-            className="persona-card"
+
+            className="personaCard"
+
             onClick={() => navigate("/personas/daniel")}
           >
             <h3>Daniel Chen</h3>
@@ -64,7 +71,8 @@ export default function Personas() {
           </div>
 
           <div
-            className="persona-card"
+            className="personaCard"
+
             onClick={() => navigate("/personas/priya")}
           >
             <h3>Priya Sharma</h3>

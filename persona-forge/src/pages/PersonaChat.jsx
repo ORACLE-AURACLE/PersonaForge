@@ -1,7 +1,9 @@
 import { useParams } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import logo from "../assets/images/PersonaForge.svg";
+import logo from "../assets/images/Main-Logo.svg";
+import identifier from "../assets/images/Background.svg"
+
 
 const PERSONAS = {
   amaka: {
@@ -63,19 +65,24 @@ export default function PersonaChat() {
   return (
     <section className="chat-page">
       {/* HEADER */}
-      <header className="chat-header">
-        <div className="header-left">
-          <img src={logo} alt="PersonaForge" className="logo-img" />
-          <button className="back-btn" onClick={() => navigate(-1)}>
-            ← Change Persona
-          </button>
-        </div>
 
-        <div className="header-center">
+      <div className="personaTop">
+        <img src={logo} alt="PersonaForge" className="logo" />
+        
+      </div>
+
+      <div className="headCenterHero">
+        <button className="back-btn" onClick={() => navigate(-1)}>
+          ← Change Persona
+        </button>
+        <div className="headerCenter">
           <h3>{persona.name}</h3>
           <span>{persona.role}</span>
         </div>
-      </header>
+        <div></div>
+        <div></div>
+      </div>
+
 
       {/* MOBILE TOGGLE */}
       <div className="mobile-toggle">
@@ -123,6 +130,9 @@ export default function PersonaChat() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
+
+              className="inputSection"
+
             />
             <button onClick={handleSend}>➤</button>
           </div>
@@ -140,7 +150,8 @@ export default function PersonaChat() {
           ) : (
             insights.map((insight, index) => (
               <div key={index} className="insight-item">
-                <strong>{insight.title}</strong>
+
+                <strong><img src={identifier}/>{insight.title}</strong>
                 <p>{insight.text}</p>
               </div>
             ))
