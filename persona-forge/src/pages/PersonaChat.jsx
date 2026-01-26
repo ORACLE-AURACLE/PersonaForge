@@ -4,6 +4,7 @@ import { useState } from "react";
 import logo from "../assets/images/Main-Logo.svg";
 import identifier from "../assets/images/Background.svg"
 
+
 const PERSONAS = {
   amaka: {
     name: "Amaka Okonkwo",
@@ -64,6 +65,7 @@ export default function PersonaChat() {
   return (
     <section className="chat-page">
       {/* HEADER */}
+
       <div className="personaTop">
         <img src={logo} alt="PersonaForge" className="logo" />
         
@@ -80,6 +82,7 @@ export default function PersonaChat() {
         <div></div>
         <div></div>
       </div>
+
 
       {/* MOBILE TOGGLE */}
       <div className="mobile-toggle">
@@ -127,7 +130,9 @@ export default function PersonaChat() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
+
               className="inputSection"
+
             />
             <button onClick={handleSend}>➤</button>
           </div>
@@ -145,6 +150,7 @@ export default function PersonaChat() {
           ) : (
             insights.map((insight, index) => (
               <div key={index} className="insight-item">
+
                 <strong><img src={identifier}/>{insight.title}</strong>
                 <p>{insight.text}</p>
               </div>
