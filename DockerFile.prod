@@ -7,12 +7,15 @@ RUN go mod download
 
 COPY . .
 
+RUN apk add --no-cache ca-certificates
+
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/personaforge .
 
 FROM gcr.io/distroless/static-debian12:nonroot
 
 WORKDIR /
 COPY --from=build /out/personaforge /personaforge
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 EXPOSE 8080
 
