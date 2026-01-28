@@ -12,6 +12,8 @@ Based on your `.env.local`:
 
 ### Connecting via pgAdmin
 
+
+
 1. **Open pgAdmin** and connect to your PostgreSQL server:
    - Right-click on "Servers" → "Create" → "Server"
    - **General Tab**:
