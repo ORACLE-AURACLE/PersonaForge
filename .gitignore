@@ -1,0 +1,17 @@
+.env
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/tmp/
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.env.*
+ENV_SETUP_GUIDE.md

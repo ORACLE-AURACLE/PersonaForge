@@ -1,0 +1,383 @@
+name: Production-Ready CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+  release:
+    types: [ published ]
+
+# Add permissions for SARIF upload and security scanning
+permissions:
+  contents: read
+  security-events: write
+
+env:
+  GO_VERSION: '1.24'
+  CGO_ENABLED: 1
+
+jobs:
+  # Job 1: Code Quality & Security Analysis
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install dependencies
+        run: |
+          go mod tidy
+          go mod verify
+      
+      - name: Install security and linting tools
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          go install github.com/mgechev/revive@latest
+      
+      - name: Run vulnerability check
+        run: |
+          echo "🔍 Running vulnerability check..."
+          if ! govulncheck ./...; then
+            echo "❌ CRITICAL: Vulnerabilities found - CI will fail"
+            exit 1
+          fi
+          echo "✅ No vulnerabilities found"
+      
+      - name: Run security scan (gosec)
+        run: |
+          echo "🔍 Running security scan..."
+          # Generate report for analysis but don't fail on warnings
+          gosec -fmt json -out gosec-report.json ./... || true
+          
+          # Check for HIGH/CRITICAL security issues
+          if ! gosec -quiet -severity high ./...; then
+            echo "❌ CRITICAL: High severity security issues found - CI will fail"
+            exit 1
+          fi
+          echo "✅ No high severity security issues found"
+      
+      - name: Run static analysis
+        run: |
+          echo "🔍 Running static analysis..."
+          if ! staticcheck ./...; then
+            echo "❌ CRITICAL: Static analysis failed - CI will fail"
+            exit 1
+          fi
+          echo "✅ Static analysis passed"
+      
+      - name: Run linter
+        run: |
+          echo "🔍 Running linter..."
+          # Run revive linter
+          if ! make lint; then
+            echo "❌ CRITICAL: Linting errors found - CI will fail"
+            exit 1
+          fi
+          echo "✅ Linting passed"
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            gosec-report.json
+
+  # Job 2: Testing & Coverage
+  test-coverage:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: test_gotomarket
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install dependencies
+        run: go mod tidy
+
+      - name: Install client tools
+        run: |
+          sudo apt-get update && sudo apt-get install -y redis-tools postgresql-client
+      
+      - name: Wait for services
+        run: |
+          echo "Waiting for PostgreSQL to be ready..."
+          timeout 30s bash -c 'until pg_isready -h localhost -p 5432; do sleep 1; done'
+          echo "PostgreSQL is ready!"
+          
+          echo "Waiting for Redis to be ready..."
+          timeout 30s bash -c 'until redis-cli -h localhost -p 6379 ping; do sleep 1; done'
+          echo "Redis is ready!"
+      
+      - name: Run tests with coverage
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: test_gotomarket
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_SSL_MODE: disable
+          REDIS_ADDR: localhost:6379
+          JWT_SECRET: test-secret-key-for-ci-validation-minimum-32-chars
+          APP_ENV: test
+        run: |
+          echo "🧪 Running tests with coverage..."
+          if ! go test -v -race -coverprofile=coverage.out -covermode=atomic ./...; then
+            echo "❌ CRITICAL: Tests failed - CI will fail"
+            # Still try to generate coverage report for analysis
+            if [ -f coverage.out ] && [ -s coverage.out ]; then
+              go tool cover -html=coverage.out -o coverage.html || true
+            fi
+            exit 1
+          fi
+          
+          # Generate coverage report
+          if [ -f coverage.out ] && [ -s coverage.out ]; then
+            go tool cover -html=coverage.out -o coverage.html || echo "Warning: Coverage HTML generation failed"
+          else
+            echo "Warning: No coverage data available"
+            touch coverage.out
+          fi
+          echo "✅ Tests passed"
+      
+      - name: Check test coverage threshold
+        run: |
+          echo "📊 Checking test coverage..."
+          
+          # Check if coverage file exists and has content
+          if [ ! -f coverage.out ] || [ ! -s coverage.out ]; then
+            echo "❌ CRITICAL: No coverage data available - this indicates test issues"
+            exit 1
+          fi
+          
+          # Extract coverage percentage
+          COVERAGE_OUTPUT=$(go tool cover -func=coverage.out | grep total || echo "total 0.0%")
+          COVERAGE=$(echo "$COVERAGE_OUTPUT" | awk '{print $3}' | sed 's/%//')
+          
+          # Handle case where coverage extraction fails
+          if [ -z "$COVERAGE" ] || [ "$COVERAGE" = "" ]; then
+            echo "❌ CRITICAL: Could not extract coverage percentage"
+            exit 1
+          fi
+          
+          echo "Coverage: ${COVERAGE}%"
+          
+          # Convert coverage to integer for comparison (removes decimal part)
+          COVERAGE_INT=$(echo "$COVERAGE" | cut -d. -f1)
+          
+          # Set strict but realistic coverage thresholds
+          if [ "$COVERAGE_INT" -lt 10 ]; then
+            echo "❌ CRITICAL: Coverage is critically low (current: ${COVERAGE}%) - CI will fail"
+            echo "Must have at least 10% test coverage to proceed"
+            exit 1
+          elif [ "$COVERAGE_INT" -lt 30 ]; then
+            echo "⚠️ WARNING: Coverage is below recommended minimum (current: ${COVERAGE}%)"
+            echo "Strongly recommend improving test coverage to 30%+ for production readiness"
+            # Don't fail CI but warn loudly
+          else
+            echo "✅ Coverage is acceptable (current: ${COVERAGE}%)"
+          fi
+      
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage.out
+            coverage.html
+
+  # Job 3: Build & Container Security
+  build-container:
+    runs-on: ubuntu-latest
+    needs: [quality-gate, test-coverage]
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: gotomarket-backend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha
+      
+      - name: Build production image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.prod
+          push: false
+          tags: gotomarket-backend:latest
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Run Trivy vulnerability scanner
+        id: trivy
+        if: steps.build.outcome == 'success'
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'gotomarket-backend:latest'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy scan results
+        if: always() && steps.trivy.outcome == 'success'
+        uses: github/codeql-action/upload-sarif@v3
+        continue-on-error: true
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # Job 4: Integration Testing (Only on main branch)
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: [quality-gate, test-coverage]  # Run independently, don't wait for build-container
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: gotomarket_integration
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      
+      - name: Install Redis client tools
+        run: |
+          sudo apt-get update && sudo apt-get install -y redis-tools postgresql-client
+      
+      - name: Wait for services
+        run: |
+          echo "Waiting for services to be ready..."
+          timeout 30s bash -c 'until pg_isready -h localhost -p 5432 && redis-cli -h localhost -p 6379 ping; do sleep 1; done'
+      
+      - name: Run integration tests
+        env:
+          APP_URL: http://localhost:8080
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: gotomarket_integration
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_SSL_MODE: disable
+          REDIS_ADDR: localhost:6379
+          JWT_SECRET: integration-test-secret-key-minimum-32-characters
+          APP_ENV: test
+        run: |
+          echo "🧪 Running integration tests..."
+          if ! go test -tags=integration -v ./...; then
+            echo "❌ CRITICAL: Integration tests failed - CI will fail"
+            exit 1
+          fi
+          echo "✅ Integration tests passed"
+
+  # Job 5: Performance Testing (Only on main branch)
+  performance-test:
+    runs-on: ubuntu-latest
+    needs: [quality-gate, test-coverage]  # Run independently, don't wait for build-container
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      
+      - name: Run performance benchmarks
+        run: |
+          echo "⚡ Running performance benchmarks..."
+          if ! go test -bench=. -benchmem ./... > benchmark-results.txt; then
+            echo "❌ CRITICAL: Performance benchmarks failed - CI will fail"
+            exit 1
+          fi
+          echo "✅ Performance benchmarks completed"
+      
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-results
+          path: benchmark-results.txt

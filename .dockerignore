@@ -1,0 +1,15 @@
+.git
+.github
+.idea
+.vscode
+
+**/*.md
+**/*_test.go
+
+bin
+dist
+tmp
+
+terminals
+
+

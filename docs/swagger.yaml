@@ -1,0 +1,461 @@
+basePath: /api
+definitions:
+  authhandler.AnonymousSessionResponse:
+    properties:
+      expires_at:
+        type: string
+      session_id:
+        type: string
+    type: object
+  authhandler.AuthResponse:
+    properties:
+      email:
+        type: string
+      expires_at:
+        type: string
+      session_id:
+        type: string
+      token:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  authhandler.GoogleLoginRequest:
+    properties:
+      id_token:
+        type: string
+      session_id:
+        description: 'Optional: for migrating anonymous sessions'
+        type: string
+    required:
+    - id_token
+    type: object
+  chat.ChatMessageResponse:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      role:
+        type: string
+    type: object
+  chat.ConversationHistory:
+    properties:
+      messages:
+        items:
+          $ref: '#/definitions/chat.ChatMessageResponse'
+        type: array
+      persona_id:
+        type: integer
+      session_id:
+        type: string
+    type: object
+  chat.InsightResponse:
+    properties:
+      analysis:
+        type: string
+      session_id:
+        type: string
+    type: object
+  chat.SendMessageRequest:
+    properties:
+      message:
+        type: string
+      persona_id:
+        type: integer
+      session_id:
+        type: string
+    required:
+    - message
+    - persona_id
+    type: object
+  chat.SendMessageResponse:
+    properties:
+      message:
+        $ref: '#/definitions/chat.ChatMessageResponse'
+      session_id:
+        type: string
+    type: object
+  persona.CreatePersonaRequest:
+    properties:
+      blueprint:
+        $ref: '#/definitions/persona.PersonaBlueprint'
+      name:
+        type: string
+    required:
+    - blueprint
+    - name
+    type: object
+  persona.PersonaBlueprint:
+    properties:
+      description:
+        type: string
+      expertise:
+        items:
+          type: string
+        type: array
+      guidelines:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      personality:
+        items:
+          type: string
+        type: array
+      tone:
+        type: string
+    type: object
+  persona.PersonaResponse:
+    properties:
+      blueprint:
+        $ref: '#/definitions/persona.PersonaBlueprint'
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_default:
+        type: boolean
+      name:
+        type: string
+    type: object
+  response.APIResponse:
+    properties:
+      data: {}
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@personaforge.com
+    name: API Support
+  description: Security-first backend for AI persona simulation
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: PersonaForge API
+  version: "1.0"
+paths:
+  /api/auth/anonymous:
+    post:
+      consumes:
+      - application/json
+      description: Create a new anonymous session for free mode usage
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/authhandler.AnonymousSessionResponse'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Create anonymous session
+      tags:
+      - auth
+  /api/auth/google:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate using Google ID token and optionally migrate an anonymous
+        session
+      parameters:
+      - description: Google login request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/authhandler.GoogleLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/authhandler.AuthResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Login with Google
+      tags:
+      - auth
+  /api/chat:
+    post:
+      consumes:
+      - application/json
+      description: Send a message to a persona and get a response
+      parameters:
+      - description: Chat message
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/chat.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/chat.SendMessageResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Send a chat message
+      tags:
+      - chat
+  /api/chat/history:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve the conversation history for the authenticated user's
+        current session and a persona
+      parameters:
+      - description: Persona ID
+        in: query
+        name: persona_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/chat.ConversationHistory'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Get conversation history
+      tags:
+      - chat
+  /api/insight:
+    post:
+      consumes:
+      - application/json
+      description: Generate structured insights about the authenticated user's current
+        session
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/chat.InsightResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Generate conversation insights
+      tags:
+      - chat
+  /api/personas:
+    get:
+      consumes:
+      - application/json
+      description: Get all personas available to the user (4 defaults + custom personas)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/persona.PersonaResponse'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: List all personas
+      tags:
+      - personas
+    post:
+      consumes:
+      - application/json
+      description: Create a new custom persona (limited to 1 for free users)
+      parameters:
+      - description: Persona details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/persona.CreatePersonaRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/persona.PersonaResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a custom persona
+      tags:
+      - personas
+  /api/personas/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a user's custom persona (cannot delete default personas)
+      parameters:
+      - description: Persona ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a custom persona
+      tags:
+      - personas
+    get:
+      consumes:
+      - application/json
+      description: Retrieve details of a specific persona
+      parameters:
+      - description: Persona ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/persona.PersonaResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Get a persona by ID
+      tags:
+      - personas
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
