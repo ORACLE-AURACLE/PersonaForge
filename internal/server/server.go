@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/PersonaForge/backend/internal/auth"
 	"github.com/PersonaForge/backend/internal/authhandler"
@@ -22,15 +23,28 @@ import (
 type Server struct {
 	router *gin.Engine
 	config *config.Config
-	db     *storage.Database
+	db     storage.DatabaseInterface
 }
 
 // NewServer creates a new server instance
 func NewServer(cfg *config.Config) (*Server, error) {
-	// Initialize database
-	db, err := storage.NewDatabase(cfg.DatabaseURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	var db storage.DatabaseInterface
+
+	// Initialize database based on USE_MONGO config
+	if cfg.UseMongo {
+		mongoDB, err := storage.NewMongoDatabase(cfg.MongoURI)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to MongoDB: %w", err)
+		}
+		db = mongoDB
+		fmt.Println("Using MongoDB database")
+	} else {
+		postgresDB, err := storage.NewPostgresDatabase(cfg.DatabaseURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to PostgreSQL: %w", err)
+		}
+		db = postgresDB
+		fmt.Println("Using PostgreSQL database")
 	}
 
 	// Run migrations
@@ -67,10 +81,62 @@ func (s *Server) Setup(ctx context.Context) error {
 		return fmt.Errorf("failed to create Gemini client: %w", err)
 	}
 
-	// Initialize repositories
-	personaRepo := persona.NewRepository(s.db.DB)
-	chatRepo := chat.NewRepository(s.db.DB)
-	authRepo := authhandler.NewRepository(s.db.DB)
+	// Initialize repositories based on database type
+	var personaRepoInstance interface{}
+	var chatRepoInstance interface{}
+	var authRepoInstance interface{}
+
+	if s.config.UseMongo {
+		mongoDBInstance, ok := s.db.(*storage.MongoDatabase)
+		if !ok {
+			return fmt.Errorf("failed to get MongoDB instance")
+		}
+		personaRepoInstance = persona.NewMongoRepository(mongoDBInstance)
+		chatRepoInstance = chat.NewMongoRepository(mongoDBInstance)
+		authRepoInstance = authhandler.NewMongoRepository(mongoDBInstance)
+	} else {
+		sqlDB := s.db.GetSQLDB()
+		if sqlDB == nil {
+			return fmt.Errorf("SQL database not available")
+		}
+		personaRepoInstance = persona.NewRepository(sqlDB)
+		chatRepoInstance = chat.NewRepository(sqlDB)
+		authRepoInstance = authhandler.NewRepository(sqlDB)
+	}
+
+	// Services use interfaces, so we can pass the concrete types directly
+	// They will satisfy the interface requirements
+	personaRepo := personaRepoInstance.(interface {
+		SessionActive(sessionID string) (bool, error)
+		CountCustomPersonasForSession(sessionID string) (int, error)
+		CreatePersona(userID *int, sessionID *string, name string, blueprint string) (*storage.Persona, error)
+		GetPersonaByID(id int) (*storage.Persona, error)
+		ListPersonasForUser(userID int) ([]storage.Persona, error)
+		ListPersonasForSession(sessionID string) ([]storage.Persona, error)
+		ListDefaultPersonas() ([]storage.Persona, error)
+		DeletePersona(id int, userID int) error
+		InitializeDefaultPersonas() error
+	})
+	
+	chatRepo := chatRepoInstance.(interface {
+		CreateSession(userID *int, sessionID string, isAnonymous bool, expiresAt time.Time) (int, error)
+		GetSessionByID(sessionID string) (*storage.Session, error)
+		GetConversationHistory(sessionDBID int, personaID int) ([]chat.MessageDTO, error)
+		GetAllMessagesForSession(sessionDBID int) ([]chat.MessageDTO, error)
+		SaveMessage(sessionDBID int, personaID int, role string, content string) (*chat.MessageDTO, error)
+		SaveTokenUsage(sessionDBID int, promptTokens int, completionTokens int, totalTokens int) error
+		MigrateSession(sessionID string, userID int) error
+	})
+	
+	authRepo := authRepoInstance.(interface {
+		GetUserByGoogleID(googleID string) (*storage.User, error)
+		CreateUser(googleID string, email string) (*storage.User, error)
+	})
+	
+	chatSessionRepo := chatRepoInstance.(interface {
+		CreateSession(userID *int, sessionID string, isAnonymous bool, expiresAt time.Time) (int, error)
+		MigrateSession(sessionID string, userID int) error
+	})
 
 	// Initialize default personas
 	personaService := persona.NewService(personaRepo)
@@ -79,8 +145,8 @@ func (s *Server) Setup(ctx context.Context) error {
 	}
 
 	// Initialize services
-	chatService := chat.NewService(chatRepo, personaRepo, geminiClient, personaService)
-	authService := authhandler.NewService(authRepo, googleAuthService, jwtService, chatRepo)
+	chatService := chat.NewService(chatRepo, nil, geminiClient, personaService)
+	authService := authhandler.NewService(authRepo, googleAuthService, jwtService, chatSessionRepo)
 
 	// Initialize handlers
 	personaHandler := persona.NewHandler(personaService)

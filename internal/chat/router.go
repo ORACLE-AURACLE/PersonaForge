@@ -20,8 +20,10 @@ func RegisterRoutes(router *gin.RouterGroup, handler *Handler, jwtService *auth.
 	chat := router.Group("/chat")
 	{
 		chat.POST("", middleware.OptionalAuthMiddleware(jwtService), chatRateLimit, handler.SendMessage)
-		// History is restricted to authenticated users only.
+		// History for the authenticated user's current session.
 		chat.GET("/history", middleware.AuthMiddleware(jwtService), handler.GetConversationHistory)
+		// History by session id for both guests (anonymous sessions) and authenticated users.
+		chat.GET("/:session_id/history", middleware.OptionalAuthMiddleware(jwtService), chatRateLimit, handler.GetConversationHistoryBySession)
 	}
 
 	// Insight endpoint

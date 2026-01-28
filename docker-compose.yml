@@ -26,6 +26,10 @@ services:
     environment:
       ENV: ${ENV:-development}
       PORT: ${PORT:-8080}
+      # Database configuration - supports both PostgreSQL and MongoDB
+      USE_MONGO: ${USE_MONGO:-true}
+      MONGODB_URI: ${MONGODB_URI:-mongodb+srv://franklivania:TJjrcCdtUCGOvtCB@persona-forge-backend.ylyddpy.mongodb.net/?appName=persona-forge-backend}
+      # Only used if USE_MONGO=false
       DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@db:5432/personaforge?sslmode=disable}
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
       JWT_EXPIRY_MINUTES: ${JWT_EXPIRY_MINUTES:-30}

@@ -1,4 +1,4 @@
-.PHONY: test lint run docker-build docker-local docker-prod all
+.PHONY: test lint run docker-build docker-local docker-prod swagger all
 
 APP_NAME := personaforge-backend
 IMAGE := personaforge-backend:latest
@@ -16,7 +16,12 @@ ifneq (,$(findstring MSYS,$(UNAME_S)))
 endif
 
 lint:
-	$(DOCKER_ENV) docker run --rm -v "$$(pwd):/app" -w /app golangci/golangci-lint:v1.56.2 golangci-lint run ./...
+	# Run golangci-lint for the whole module but with an increased timeout
+	$(DOCKER_ENV) docker run --rm -v "$$(pwd):/app" -w /app golangci/golangci-lint:v1.56.2 golangci-lint run ./... --timeout=5m
+
+swagger:
+	# Regenerate Swagger JSON/YAML and docs package
+	go run github.com/swaggo/swag/cmd/swag@v1.16.3 init -g main.go -o docs
 
 run:
 	go run .
@@ -34,6 +39,6 @@ db-setup:
 	@echo "Setting up database..."
 	@bash setup-database.sh || powershell -ExecutionPolicy Bypass -File setup-database.ps1
 
-all: test lint docker-build
+all: test lint swagger docker-build docker-local
 
 

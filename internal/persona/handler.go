@@ -86,7 +86,7 @@ func (h *Handler) GetPersona(c *gin.Context) {
 
 // CreatePersona godoc
 // @Summary Create a custom persona
-// @Description Create a new custom persona (limited to 1 for free users)
+// @Description Create a new custom persona (limited to 2 for free users)
 // @Tags personas
 // @Accept json
 // @Produce json
@@ -131,7 +131,7 @@ func (h *Handler) CreatePersona(c *gin.Context) {
 
 	persona, err := h.service.CreateCustomPersona(userID, sessionID, isAuthenticated, req)
 	if err != nil {
-		if err.Error() == "free users can only create 1 custom persona" {
+		if err.Error() == "free users can only create 2 custom personas" {
 			response.Forbidden(c, err.Error())
 			return
 		}

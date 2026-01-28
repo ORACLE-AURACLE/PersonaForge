@@ -109,6 +109,63 @@ func (h *Handler) GetConversationHistory(c *gin.Context) {
 	response.Success(c, history)
 }
 
+// GetConversationHistoryBySession godoc
+// @Summary Get conversation history by session
+// @Description Retrieve the conversation history for a given session and persona. Authenticated users can access their own sessions; guests can access anonymous sessions using the session id.
+// @Tags chat
+// @Accept json
+// @Produce json
+// @Param session_id path string true "Session ID"
+// @Param persona_id query int true "Persona ID"
+// @Success 200 {object} response.APIResponse{data=ConversationHistory}
+// @Failure 400 {object} response.APIResponse
+// @Failure 401 {object} response.APIResponse
+// @Failure 404 {object} response.APIResponse
+// @Router /api/chat/{session_id}/history [get]
+func (h *Handler) GetConversationHistoryBySession(c *gin.Context) {
+	sessionID := c.Param("session_id")
+	personaIDStr := c.Query("persona_id")
+
+	if sessionID == "" {
+		response.BadRequest(c, "session_id is required")
+		return
+	}
+
+	if personaIDStr == "" {
+		response.BadRequest(c, "persona_id is required")
+		return
+	}
+
+	// Optional auth: guests and authenticated users both allowed,
+	// but service enforces ownership rules.
+	var userID *int
+	isAuthenticated := false
+
+	if id, exists := c.Get("user_id"); exists {
+		uid := id.(int)
+		userID = &uid
+		isAuthenticated = true
+	}
+	if auth, exists := c.Get("is_authenticated"); exists {
+		isAuthenticated = auth.(bool)
+	}
+
+	var personaID int
+	if _, err := fmt.Sscanf(personaIDStr, "%d", &personaID); err != nil {
+		response.BadRequest(c, "Invalid persona_id")
+		return
+	}
+
+	history, err := h.service.GetConversationHistoryBySession(c.Request.Context(), userID, isAuthenticated, sessionID, personaID)
+	if err != nil {
+		// For security, do not leak details: treat as not found.
+		response.NotFound(c, err.Error())
+		return
+	}
+
+	response.Success(c, history)
+}
+
 // GenerateInsight godoc
 // @Summary Generate conversation insights
 // @Description Generate structured insights about the authenticated user's current session

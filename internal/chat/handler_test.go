@@ -155,13 +155,23 @@ func TestChatEndpoints_GuestNoHistory_AuthHasHistoryAndInsight(t *testing.T) {
 		}
 	}
 
-	// Guest cannot access history (auth required)
+	// Guest cannot access authenticated /history (auth required)
 	{
 		req := httptest.NewRequest(http.MethodGet, "/api/chat/history?persona_id=1", nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 		if w.Code != http.StatusUnauthorized {
 			t.Fatalf("expected 401 got %d body=%s", w.Code, w.Body.String())
+		}
+	}
+
+	// Guest can access history by session id for their anonymous session
+	{
+		req := httptest.NewRequest(http.MethodGet, "/api/chat/"+guestSession+"/history?persona_id=1", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200 got %d body=%s", w.Code, w.Body.String())
 		}
 	}
 

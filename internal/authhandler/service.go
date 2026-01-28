@@ -37,7 +37,7 @@ type Service struct {
 }
 
 // NewService creates a new auth service
-func NewService(repo *Repository, googleAuth *auth.GoogleAuthService, jwtService *auth.JWTService, chatRepo chatSessionRepo) *Service {
+func NewService(repo authRepo, googleAuth *auth.GoogleAuthService, jwtService *auth.JWTService, chatRepo chatSessionRepo) *Service {
 	return &Service{
 		repo:       repo,
 		googleAuth: googleAuth,

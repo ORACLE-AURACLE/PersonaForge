@@ -149,7 +149,7 @@ func TestPersonaEndpoints_GuestLimitAndAuthUnlimited(t *testing.T) {
 		}
 	}
 
-	// Guest create with X-Session-ID succeeds once
+	// Guest create with X-Session-ID succeeds twice
 	{
 		body := `{"name":"G1","blueprint":{"name":"G1","description":"d","personality":["a"],"expertise":["e"],"tone":"t","guidelines":["g"]}}`
 		req := httptest.NewRequest(http.MethodPost, "/api/personas", bytes.NewBufferString(body))
@@ -161,9 +161,20 @@ func TestPersonaEndpoints_GuestLimitAndAuthUnlimited(t *testing.T) {
 			t.Fatalf("expected 201 got %d body=%s", w.Code, w.Body.String())
 		}
 	}
-	// Second guest persona should be forbidden
 	{
 		body := `{"name":"G2","blueprint":{"name":"G2","description":"d","personality":["a"],"expertise":["e"],"tone":"t","guidelines":["g"]}}`
+		req := httptest.NewRequest(http.MethodPost, "/api/personas", bytes.NewBufferString(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Session-ID", "guest-session")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		if w.Code != http.StatusCreated {
+			t.Fatalf("expected 201 got %d body=%s", w.Code, w.Body.String())
+		}
+	}
+	// Third guest persona should be forbidden
+	{
+		body := `{"name":"G3","blueprint":{"name":"G3","description":"d","personality":["a"],"expertise":["e"],"tone":"t","guidelines":["g"]}}`
 		req := httptest.NewRequest(http.MethodPost, "/api/personas", bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("X-Session-ID", "guest-session")

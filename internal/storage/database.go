@@ -14,13 +14,13 @@ import (
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
-// Database wraps the sql.DB connection
-type Database struct {
+// PostgresDatabase wraps the sql.DB connection for PostgreSQL
+type PostgresDatabase struct {
 	DB *sql.DB
 }
 
-// NewDatabase creates a new database connection
-func NewDatabase(databaseURL string) (*Database, error) {
+// NewPostgresDatabase creates a new PostgreSQL database connection
+func NewPostgresDatabase(databaseURL string) (*PostgresDatabase, error) {
 	db, err := sql.Open("postgres", databaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
@@ -31,11 +31,21 @@ func NewDatabase(databaseURL string) (*Database, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	return &Database{DB: db}, nil
+	return &PostgresDatabase{DB: db}, nil
+}
+
+// GetSQLDB returns the underlying *sql.DB
+func (d *PostgresDatabase) GetSQLDB() *sql.DB {
+	return d.DB
+}
+
+// GetMongoClient returns nil for Postgres
+func (d *PostgresDatabase) GetMongoClient() interface{} {
+	return nil
 }
 
 // RunMigrations executes all pending database migrations
-func (d *Database) RunMigrations() error {
+func (d *PostgresDatabase) RunMigrations() error {
 	// Ensure migrations table exists
 	_, err := d.DB.Exec(`
 		CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -97,7 +107,7 @@ func (d *Database) RunMigrations() error {
 	return nil
 }
 
-func (d *Database) getAppliedMigrations() (map[int]bool, error) {
+func (d *PostgresDatabase) getAppliedMigrations() (map[int]bool, error) {
 	rows, err := d.DB.Query("SELECT version FROM schema_migrations")
 	if err != nil {
 		return nil, err
@@ -116,7 +126,7 @@ func (d *Database) getAppliedMigrations() (map[int]bool, error) {
 	return applied, rows.Err()
 }
 
-func (d *Database) executeMigration(version int, sql string) error {
+func (d *PostgresDatabase) executeMigration(version int, sql string) error {
 	tx, err := d.DB.Begin()
 	if err != nil {
 		return err
@@ -154,6 +164,6 @@ func extractVersion(filename string) int {
 }
 
 // Close closes the database connection
-func (d *Database) Close() error {
+func (d *PostgresDatabase) Close() error {
 	return d.DB.Close()
 }

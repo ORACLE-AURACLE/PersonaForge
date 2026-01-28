@@ -32,7 +32,7 @@ func NewService(repo personaRepo) *Service {
 // CreateCustomPersona creates a new custom persona with limit enforcement
 func (s *Service) CreateCustomPersona(userID *int, sessionID *string, isAuthenticated bool, req CreatePersonaRequest) (*PersonaResponse, error) {
 	// Enforce limits:
-	// - Guests: 1 custom persona per session
+	// - Guests: 2 custom personas per session
 	// - Authenticated users: unlimited (for now)
 	if !isAuthenticated {
 		if sessionID == nil || *sessionID == "" {
@@ -51,8 +51,8 @@ func (s *Service) CreateCustomPersona(userID *int, sessionID *string, isAuthenti
 		if err != nil {
 			return nil, err
 		}
-		if count >= 1 {
-			return nil, fmt.Errorf("free users can only create 1 custom persona")
+		if count >= 2 {
+			return nil, fmt.Errorf("free users can only create 2 custom personas")
 		}
 	} else {
 		if userID == nil {

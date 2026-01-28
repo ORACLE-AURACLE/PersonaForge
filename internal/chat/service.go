@@ -38,7 +38,8 @@ type Service struct {
 }
 
 // NewService creates a new chat service
-func NewService(repo *Repository, _ *persona.Repository, geminiClient *gemini.Client, personaService *persona.Service) *Service {
+// The second parameter is unused (legacy), personaService provides persona access
+func NewService(repo chatRepo, _ interface{}, geminiClient *gemini.Client, personaService *persona.Service) *Service {
 	return &Service{
 		repo:           repo,
 		geminiClient:   geminiClient,
@@ -172,6 +173,57 @@ func (s *Service) GetConversationHistory(ctx context.Context, userID int, sessio
 	}
 	if session.ExpiresAt.Before(time.Now()) {
 		return nil, fmt.Errorf("session not found")
+	}
+
+	messages, err := s.repo.GetConversationHistory(session.ID, personaID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get conversation history: %w", err)
+	}
+
+	var chatMessages []ChatMessageResponse
+	for _, msg := range messages {
+		chatMessages = append(chatMessages, ChatMessageResponse{
+			ID:        msg.ID,
+			Role:      msg.Role,
+			Content:   msg.Content,
+			CreatedAt: msg.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		})
+	}
+
+	return &ConversationHistory{
+		SessionID: sessionID,
+		PersonaID: personaID,
+		Messages:  chatMessages,
+	}, nil
+}
+
+// GetConversationHistoryBySession retrieves the conversation history for a session, handling both
+// authenticated and anonymous access based on session ownership.
+func (s *Service) GetConversationHistoryBySession(ctx context.Context, userID *int, isAuthenticated bool, sessionID string, personaID int) (*ConversationHistory, error) {
+	session, err := s.repo.GetSessionByID(sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get session: %w", err)
+	}
+	if session == nil {
+		return nil, fmt.Errorf("session not found")
+	}
+
+	// Ownership and validity checks mirror SendMessage session handling.
+	if isAuthenticated {
+		if userID == nil || session.UserID == nil || *session.UserID != *userID {
+			return nil, fmt.Errorf("session not found")
+		}
+		if session.ExpiresAt.Before(time.Now()) {
+			return nil, fmt.Errorf("session not found")
+		}
+	} else {
+		// Guest: only allow anonymous, non-expired sessions
+		if !session.IsAnonymous {
+			return nil, fmt.Errorf("session not found")
+		}
+		if session.ExpiresAt.Before(time.Now()) {
+			return nil, fmt.Errorf("session not found")
+		}
 	}
 
 	messages, err := s.repo.GetConversationHistory(session.ID, personaID)

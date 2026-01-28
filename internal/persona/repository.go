@@ -8,14 +8,24 @@ import (
 	"github.com/PersonaForge/backend/internal/storage"
 )
 
-// Repository handles persona data access
+// Repository handles persona data access for PostgreSQL
 type Repository struct {
 	db *sql.DB
 }
 
-// NewRepository creates a new persona repository
+// NewRepository creates a new persona repository for PostgreSQL
 func NewRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
+}
+
+// MongoRepository handles persona data access for MongoDB
+type MongoRepository struct {
+	db *storage.MongoDatabase
+}
+
+// NewMongoRepository creates a new persona repository for MongoDB
+func NewMongoRepository(db *storage.MongoDatabase) *MongoRepository {
+	return &MongoRepository{db: db}
 }
 
 // SessionActive checks whether a session exists and is not expired.

@@ -1,4 +1,4 @@
-basePath: /api
+basePath: /
 definitions:
   authhandler.AnonymousSessionResponse:
     properties:
@@ -244,6 +244,51 @@ paths:
       summary: Send a chat message
       tags:
       - chat
+  /api/chat/{session_id}/history:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve the conversation history for a given session and persona.
+        Authenticated users can access their own sessions; guests can access anonymous
+        sessions using the session id.
+      parameters:
+      - description: Session ID
+        in: path
+        name: session_id
+        required: true
+        type: string
+      - description: Persona ID
+        in: query
+        name: persona_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/chat.ConversationHistory'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Get conversation history by session
+      tags:
+      - chat
   /api/chat/history:
     get:
       consumes:
@@ -347,7 +392,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a new custom persona (limited to 1 for free users)
+      description: Create a new custom persona (limited to 2 for free users)
       parameters:
       - description: Persona details
         in: body
