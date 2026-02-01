@@ -20,6 +20,7 @@ type Config struct {
 	Port             string
 	GeminiModel      string
 	JWTExpiryMinutes int
+	CORSOrigins      string // Comma-separated list of allowed origins
 }
 
 // Load reads environment variables and returns a Config struct
@@ -78,6 +79,7 @@ func Load() (*Config, error) {
 		Environment:    getEnv("ENV", "development"),
 		Port:           getEnv("PORT", "8080"),
 		GeminiModel:    getEnv("GEMINI_MODEL", "gemini-2.5-flash"),
+		CORSOrigins:    getEnv("CORS_ORIGINS", "*"),
 	}
 
 	// Parse JWT expiry

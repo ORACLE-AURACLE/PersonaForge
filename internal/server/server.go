@@ -69,6 +69,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 // Setup initializes all routes and middleware
 func (s *Server) Setup(ctx context.Context) error {
 	// Apply global middleware
+	s.router.Use(middleware.CORSFromOrigins(s.config.CORSOrigins))
 	s.router.Use(middleware.SecurityHeaders())
 
 	// Initialize services
@@ -117,7 +118,7 @@ func (s *Server) Setup(ctx context.Context) error {
 		DeletePersona(id int, userID int) error
 		InitializeDefaultPersonas() error
 	})
-	
+
 	chatRepo := chatRepoInstance.(interface {
 		CreateSession(userID *int, sessionID string, isAnonymous bool, expiresAt time.Time) (int, error)
 		GetSessionByID(sessionID string) (*storage.Session, error)
@@ -127,12 +128,12 @@ func (s *Server) Setup(ctx context.Context) error {
 		SaveTokenUsage(sessionDBID int, promptTokens int, completionTokens int, totalTokens int) error
 		MigrateSession(sessionID string, userID int) error
 	})
-	
+
 	authRepo := authRepoInstance.(interface {
 		GetUserByGoogleID(googleID string) (*storage.User, error)
 		CreateUser(googleID string, email string) (*storage.User, error)
 	})
-	
+
 	chatSessionRepo := chatRepoInstance.(interface {
 		CreateSession(userID *int, sessionID string, isAnonymous bool, expiresAt time.Time) (int, error)
 		MigrateSession(sessionID string, userID int) error
