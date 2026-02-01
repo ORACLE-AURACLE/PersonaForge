@@ -24,7 +24,8 @@ import (
 // @license.name MIT
 // @license.url https://opensource.org/licenses/MIT
 //
-// @host localhost:8080
+// @host persona-forge-ffce.onrender.comx
+// @schemes https
 // @BasePath /
 //
 // @securityDefinitions.apikey BearerAuth
@@ -69,5 +70,3 @@ func main() {
 		log.Fatalf("Server error: %v", err)
 	}
 }
-
-

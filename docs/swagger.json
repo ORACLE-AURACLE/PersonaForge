@@ -1,4 +1,7 @@
 {
+    "schemes": [
+        "https"
+    ],
     "swagger": "2.0",
     "info": {
         "description": "Security-first backend for AI persona simulation",
@@ -14,7 +17,7 @@
         },
         "version": "1.0"
     },
-    "host": "localhost:8080",
+    "host": "persona-forge-ffce.onrender.com",
     "basePath": "/",
     "paths": {
         "/api/auth/anonymous": {
