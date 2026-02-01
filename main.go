@@ -24,7 +24,7 @@ import (
 // @license.name MIT
 // @license.url https://opensource.org/licenses/MIT
 //
-// @host persona-forge-ffce.onrender.comx
+// @host persona-forge-ffce.onrender.com
 // @schemes https
 // @BasePath /
 //

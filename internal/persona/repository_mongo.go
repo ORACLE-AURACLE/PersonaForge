@@ -37,7 +37,7 @@ func (r *MongoRepository) getNextID(ctx context.Context, collectionName string) 
 	filter := bson.M{"_id": collectionName}
 	update := bson.M{
 		"$inc":         bson.M{"seq": 1},
-		"$setOnInsert": bson.M{"seq": 0},
+		// "$setOnInsert": bson.M{"seq": 0},
 	}
 	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
 
