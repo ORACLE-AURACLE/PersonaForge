@@ -36,7 +36,7 @@ func (r *MongoRepository) getNextID(ctx context.Context, collectionName string) 
 
 	filter := bson.M{"_id": collectionName}
 	update := bson.M{
-		"$inc":         bson.M{"seq": 1},
+		"$inc": bson.M{"seq": 1},
 		// "$setOnInsert": bson.M{"seq": 0},
 	}
 	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
@@ -341,13 +341,20 @@ func (r *MongoRepository) InitializeDefaultPersonas() error {
 			return fmt.Errorf("failed to marshal blueprint: %w", err)
 		}
 
-		persona := storage.Persona{
-			UserID:    nil,
-			SessionID: nil,
-			Name:      blueprint.Name,
-			Blueprint: blueprintJSON,
-			IsDefault: true,
-			CreatedAt: time.Now(),
+		// Get next ID for this persona
+		id, err := r.getNextID(ctx, "personas")
+		if err != nil {
+			return fmt.Errorf("failed to get next ID for default persona: %w", err)
+		}
+
+		persona := bson.M{
+			"id":         id,
+			"user_id":    nil,
+			"session_id": nil,
+			"name":       blueprint.Name,
+			"blueprint":  blueprintJSON,
+			"is_default": true,
+			"created_at": time.Now(),
 		}
 
 		if _, err := collection.InsertOne(ctx, persona); err != nil {
