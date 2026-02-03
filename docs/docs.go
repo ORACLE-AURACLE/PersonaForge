@@ -815,9 +815,9 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "persona-forge-ffce.onrender.com",
+	Host:             "localhost:8080",
 	BasePath:         "/",
-	Schemes:          []string{"https"},
+	Schemes:          []string{"http"},
 	Title:            "PersonaForge API",
 	Description:      "Security-first backend for AI persona simulation",
 	InfoInstanceName: "swagger",

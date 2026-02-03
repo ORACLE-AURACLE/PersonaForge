@@ -52,6 +52,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 
 	resp, err := h.service.SendMessage(c.Request.Context(), userID, isAuthenticated, req)
 	if err != nil {
+		fmt.Printf("[ERROR] SendMessage failed: %v\n", err)
 		response.InternalServerError(c, err.Error())
 		return
 	}

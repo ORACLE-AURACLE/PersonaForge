@@ -9,7 +9,9 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
 
 // MongoDatabase wraps the MongoDB client
@@ -22,7 +24,12 @@ type MongoDatabase struct {
 func NewMongoDatabase(mongoURI string) (*MongoDatabase, error) {
 	// Use the SetServerAPIOptions() method to set the version of the Stable API on the client
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
-	opts := options.Client().ApplyURI(mongoURI).SetServerAPIOptions(serverAPI)
+	opts := options.Client().
+		ApplyURI(mongoURI).
+		SetServerAPIOptions(serverAPI).
+		SetWriteConcern(writeconcern.Majority()).
+		SetReadConcern(readconcern.Majority()).
+		SetReadPreference(readpref.Primary())
 
 	// Create a new client and connect to the server
 	// In MongoDB v2, Connect takes only opts (context is handled internally)
