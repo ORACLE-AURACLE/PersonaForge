@@ -65,14 +65,11 @@ func (r *MongoRepository) CreateSession(userID *int, sessionID string, isAnonymo
 		"expires_at":   expiresAt,
 	}
 
-	fmt.Printf("[DEBUG] CreateSession - Creating session_id: %s in database: %s\n", sessionID, r.db.Database.Name())
-
 	_, err = collection.InsertOne(ctx, session)
 	if err != nil {
 		return 0, fmt.Errorf("failed to create session: %w", err)
 	}
 
-	fmt.Printf("[DEBUG] CreateSession - Session created successfully with id: %d\n", id)
 	return id, nil
 }
 
@@ -83,37 +80,15 @@ func (r *MongoRepository) GetSessionByID(sessionID string) (*storage.Session, er
 
 	filter := bson.M{"session_id": sessionID}
 
-	// Debug logging
-	fmt.Printf("[DEBUG] GetSessionByID - Looking for session_id: %s\n", sessionID)
-	fmt.Printf("[DEBUG] GetSessionByID - Database: %s, Collection: sessions\n", r.db.Database.Name())
-
 	var result bson.M
 	err := collection.FindOne(ctx, filter).Decode(&result)
 	if err == mongo.ErrNoDocuments {
-		fmt.Printf("[DEBUG] GetSessionByID - No documents found for session_id: %s\n", sessionID)
-
-		// List all sessions to debug
-		cursor, listErr := collection.Find(ctx, bson.M{})
-		if listErr == nil {
-			var allSessions []bson.M
-			if cursor.All(ctx, &allSessions) == nil {
-				fmt.Printf("[DEBUG] GetSessionByID - Total sessions in DB: %d\n", len(allSessions))
-				for i, s := range allSessions {
-					if i < 3 { // Show first 3 sessions
-						fmt.Printf("[DEBUG] GetSessionByID - Sample session %d: session_id=%v\n", i+1, s["session_id"])
-					}
-				}
-			}
-			cursor.Close(ctx)
-		}
-
 		return nil, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get session: %w", err)
 	}
 
-	fmt.Printf("[DEBUG] GetSessionByID - Session found: %+v\n", result)
 	return r.bsonToSession(result), nil
 }
 

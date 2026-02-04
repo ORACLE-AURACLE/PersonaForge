@@ -19,12 +19,12 @@ func NewHandler(service *Service) *Handler {
 
 // SendMessage godoc
 // @Summary Send a chat message
-// @Description Send a message to a persona and get a response
+// @Description Send a message to a persona and get a response. Use session_id field to continue an existing conversation or leave empty to create new session.
 // @Tags chat
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param request body SendMessageRequest true "Chat message"
+// @Param request body SendMessageRequest true "Chat message (session_id optional for new conversations)"
 // @Success 200 {object} response.APIResponse{data=SendMessageResponse}
 // @Failure 400 {object} response.APIResponse
 // @Failure 500 {object} response.APIResponse
@@ -52,7 +52,6 @@ func (h *Handler) SendMessage(c *gin.Context) {
 
 	resp, err := h.service.SendMessage(c.Request.Context(), userID, isAuthenticated, req)
 	if err != nil {
-		fmt.Printf("[ERROR] SendMessage failed: %v\n", err)
 		response.InternalServerError(c, err.Error())
 		return
 	}

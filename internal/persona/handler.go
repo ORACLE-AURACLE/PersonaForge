@@ -19,11 +19,12 @@ func NewHandler(service *Service) *Handler {
 
 // ListPersonas godoc
 // @Summary List all personas
-// @Description Get all personas available to the user (4 defaults + custom personas)
+// @Description Get all personas available to the user (4 defaults + custom personas). Optionally provide X-Session-ID header to retrieve guest personas.
 // @Tags personas
 // @Accept json
 // @Produce json
 // @Security BearerAuth
+// @Param X-Session-ID header string false "Session ID for guest users (optional)"
 // @Success 200 {object} response.APIResponse{data=[]PersonaResponse}
 // @Failure 500 {object} response.APIResponse
 // @Router /api/personas [get]
@@ -86,11 +87,12 @@ func (h *Handler) GetPersona(c *gin.Context) {
 
 // CreatePersona godoc
 // @Summary Create a custom persona
-// @Description Create a new custom persona (limited to 2 for free users)
+// @Description Create a new custom persona (limited to 2 for free users). Authenticated users use Bearer token. Guests must provide X-Session-ID header from /api/auth/anonymous.
 // @Tags personas
 // @Accept json
 // @Produce json
 // @Security BearerAuth
+// @Param X-Session-ID header string false "Session ID for guest users (required if not authenticated)"
 // @Param request body CreatePersonaRequest true "Persona details"
 // @Success 201 {object} response.APIResponse{data=PersonaResponse}
 // @Failure 400 {object} response.APIResponse

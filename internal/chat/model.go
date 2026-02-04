@@ -6,7 +6,7 @@ import "time"
 type SendMessageRequest struct {
 	PersonaID int    `json:"persona_id" binding:"required"`
 	Message   string `json:"message" binding:"required"`
-	SessionID string `json:"session_id,omitempty"`
+	SessionID string `json:"session_id,omitempty"` // Optional: provide to continue existing conversation, omit to start new
 }
 
 // ChatMessageResponse represents a single chat message

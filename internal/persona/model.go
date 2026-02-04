@@ -13,6 +13,7 @@ type PersonaBlueprint struct {
 }
 
 // CreatePersonaRequest is the request body for creating a custom persona
+// Note: Guest users must also provide X-Session-ID header (from /api/auth/anonymous)
 type CreatePersonaRequest struct {
 	Name      string           `json:"name" binding:"required"`
 	Blueprint PersonaBlueprint `json:"blueprint" binding:"required"`

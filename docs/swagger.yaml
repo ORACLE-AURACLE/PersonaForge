@@ -66,6 +66,8 @@ definitions:
       persona_id:
         type: integer
       session_id:
+        description: 'Optional: provide to continue existing conversation, omit to
+          start new'
         type: string
     required:
     - message
@@ -130,7 +132,7 @@ definitions:
       status:
         type: string
     type: object
-host: persona-forge-ffce.onrender.com
+host: localhost:8080
 info:
   contact:
     email: support@personaforge.com
@@ -211,9 +213,10 @@ paths:
     post:
       consumes:
       - application/json
-      description: Send a message to a persona and get a response
+      description: Send a message to a persona and get a response. Use session_id
+        field to continue an existing conversation or leave empty to create new session.
       parameters:
-      - description: Chat message
+      - description: Chat message (session_id optional for new conversations)
         in: body
         name: request
         required: true
@@ -365,7 +368,13 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get all personas available to the user (4 defaults + custom personas)
+      description: Get all personas available to the user (4 defaults + custom personas).
+        Optionally provide X-Session-ID header to retrieve guest personas.
+      parameters:
+      - description: Session ID for guest users (optional)
+        in: header
+        name: X-Session-ID
+        type: string
       produces:
       - application/json
       responses:
@@ -392,8 +401,13 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a new custom persona (limited to 2 for free users)
+      description: Create a new custom persona (limited to 2 for free users). Authenticated
+        users use Bearer token. Guests must provide X-Session-ID header from /api/auth/anonymous.
       parameters:
+      - description: Session ID for guest users (required if not authenticated)
+        in: header
+        name: X-Session-ID
+        type: string
       - description: Persona details
         in: body
         name: request
@@ -498,7 +512,7 @@ paths:
       tags:
       - personas
 schemes:
-- https
+- http
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token

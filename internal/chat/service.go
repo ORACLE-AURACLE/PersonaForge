@@ -89,7 +89,7 @@ func (s *Service) SendMessage(ctx context.Context, userID *int, isAuthenticated 
 			return nil, fmt.Errorf("failed to generate session ID: %w", err)
 		}
 
-		expiresAt := time.Now().Add(24 * time.Hour)
+		expiresAt := time.Now().Add(7 * 24 * time.Hour)
 		sessionDBID, err = s.repo.CreateSession(userID, sessionIDStr, !isAuthenticated, expiresAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create session: %w", err)

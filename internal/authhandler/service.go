@@ -109,7 +109,7 @@ func (s *Service) CreateAnonymousSession() (*AnonymousSessionResponse, error) {
 		return nil, fmt.Errorf("failed to generate session ID: %w", err)
 	}
 
-	expiresAt := time.Now().Add(24 * time.Hour)
+	expiresAt := time.Now().Add(7 * 24 * time.Hour)
 
 	// Create session in database
 	_, err = s.chatRepo.CreateSession(nil, sessionID, true, expiresAt)

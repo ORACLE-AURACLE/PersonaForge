@@ -135,7 +135,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Send a message to a persona and get a response",
+                "description": "Send a message to a persona and get a response. Use session_id field to continue an existing conversation or leave empty to create new session.",
                 "consumes": [
                     "application/json"
                 ],
@@ -148,7 +148,7 @@ const docTemplate = `{
                 "summary": "Send a chat message",
                 "parameters": [
                     {
-                        "description": "Chat message",
+                        "description": "Chat message (session_id optional for new conversations)",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -382,7 +382,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all personas available to the user (4 defaults + custom personas)",
+                "description": "Get all personas available to the user (4 defaults + custom personas). Optionally provide X-Session-ID header to retrieve guest personas.",
                 "consumes": [
                     "application/json"
                 ],
@@ -393,6 +393,14 @@ const docTemplate = `{
                     "personas"
                 ],
                 "summary": "List all personas",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID for guest users (optional)",
+                        "name": "X-Session-ID",
+                        "in": "header"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -429,7 +437,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Create a new custom persona (limited to 2 for free users)",
+                "description": "Create a new custom persona (limited to 2 for free users). Authenticated users use Bearer token. Guests must provide X-Session-ID header from /api/auth/anonymous.",
                 "consumes": [
                     "application/json"
                 ],
@@ -441,6 +449,12 @@ const docTemplate = `{
                 ],
                 "summary": "Create a custom persona",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID for guest users (required if not authenticated)",
+                        "name": "X-Session-ID",
+                        "in": "header"
+                    },
                     {
                         "description": "Persona details",
                         "name": "request",
@@ -707,6 +721,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "session_id": {
+                    "description": "Optional: provide to continue existing conversation, omit to start new",
                     "type": "string"
                 }
             }
@@ -815,9 +830,9 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "persona-forge-ffce.onrender.com",
+	Host:             "localhost:8080",
 	BasePath:         "/",
-	Schemes:          []string{"https"},
+	Schemes:          []string{"http"},
 	Title:            "PersonaForge API",
 	Description:      "Security-first backend for AI persona simulation",
 	InfoInstanceName: "swagger",
