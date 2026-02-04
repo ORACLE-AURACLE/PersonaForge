@@ -132,7 +132,7 @@ definitions:
       status:
         type: string
     type: object
-host: localhost:8080
+host: persona-forge-ffce.onrender.com
 info:
   contact:
     email: support@personaforge.com
@@ -512,7 +512,7 @@ paths:
       tags:
       - personas
 schemes:
-- http
+- https
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token
