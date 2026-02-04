@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import logo from '../assets/images/PersonaForge.svg';
 
+
 const PERSONAS = {
   amaka: {
     name: 'Amaka Okonkwo',
@@ -58,6 +59,26 @@ export default function PersonaChat() {
 
     setMessage('');
   };
+  useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const personaResponse = await getPersonaById(id);
+      console.log("Fetched persona:", personaResponse); // <-- ADD THIS
+      if (personaResponse?.success === false) {
+        setError(personaResponse.message);
+        return;
+      }
+      setPersona(personaResponse);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, [id]);
+
 
   return (
     <section className="chat-page">
