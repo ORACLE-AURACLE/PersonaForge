@@ -1,7 +1,8 @@
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import logo from '../assets/images/PersonaForge.svg';
+import { Link } from 'react-router-dom';
 
 
 const PERSONAS = {
@@ -145,22 +146,34 @@ export default function PersonaChat() {
           </div>
         </div>
 
+       
         {/* INSIGHTS */}
-        <aside className={`insights-panel ${activeTab !== 'insights' ? 'hide-mobile' : ''}`}>
-          <h4>Insights</h4>
-          {insights.length === 0 ? (
-            <p className="insights-placeholder">
-              Insights will appear here as you converse with {firstName}.
-            </p>
-          ) : (
-            insights.map((insight, index) => (
-              <div key={index} className="insight-item">
-                <strong>{insight.title}</strong>
-                <p>{insight.text}</p>
-              </div>
-            ))
-          )}
-        </aside>
+<aside className={`insights-panel ${activeTab !== 'insights' ? 'hide-mobile' : ''}`}>
+  <h4>Insights</h4>
+
+  {insights.length === 0 ? (
+    <>
+      <p className="insights-placeholder">
+        Insights will appear here as you converse with {firstName}.
+      </p>
+
+      <button
+        className="insights-auth-btn"
+        onClick={() => navigate('/auth/google-login')}
+      >
+        Sign in with Google to unlock insights
+      </button>
+    </>
+  ) : (
+    insights.map((insight, index) => (
+      <div key={index} className="insight-item">
+        <strong>{insight.title}</strong>
+        <p>{insight.text}</p>
+      </div>
+    ))
+  )}
+</aside>
+
       </div>
     </section>
   );

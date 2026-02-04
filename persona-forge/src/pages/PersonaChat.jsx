@@ -26,17 +26,16 @@ export default function PersonaChat() {
   const [insights, setInsights] = useState([]);
   const [sending, setSending] = useState(false);
 
-  const token = localStorage.getItem("access_token");
-  const isAnonymous = !token;
+  const isAnonymous = !localStorage.getItem("token");
+
   const personaId = parseInt(id, 10);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-useEffect(() => {
-  const onResize = () => setIsMobile(window.innerWidth <= 768);
-  window.addEventListener("resize", onResize);
-  return () => window.removeEventListener("resize", onResize);
-}, []);
-
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   // Fetch persona and chat history
   useEffect(() => {
@@ -56,7 +55,7 @@ useEffect(() => {
             setError(historyResponse.message);
           } else {
             setMessages(
-              Array.isArray(historyResponse.data) ? historyResponse.data : []
+              Array.isArray(historyResponse.data) ? historyResponse.data : [],
             );
           }
         }
@@ -76,7 +75,11 @@ useEffect(() => {
     setError(null);
 
     try {
-      const requestBody = { message, persona_id: personaId, session_id: sessionId };
+      const requestBody = {
+        message,
+        persona_id: personaId,
+        session_id: sessionId,
+      };
       const response = await sendMessage(requestBody);
 
       if (response?.status !== "success") {
@@ -99,7 +102,7 @@ useEffect(() => {
         const insightsResponse = await getInsights(sessionId);
         if (insightsResponse?.success !== false) {
           setInsights(
-            Array.isArray(insightsResponse.data) ? insightsResponse.data : []
+            Array.isArray(insightsResponse.data) ? insightsResponse.data : [],
           );
         }
       }
@@ -119,9 +122,12 @@ useEffect(() => {
   // Helper to render structured messages with headings, subtitles, bullets
   const formatMessage = (text) =>
     text.split("\n").map((line, idx) => {
-      if (line.startsWith("## ")) return <h4 key={idx}>{line.replace("## ", "")}</h4>;
-      if (line.startsWith("# ")) return <h3 key={idx}>{line.replace("# ", "")}</h3>;
-      if (line.startsWith("- ")) return <li key={idx}>{line.replace("- ", "")}</li>;
+      if (line.startsWith("## "))
+        return <h4 key={idx}>{line.replace("## ", "")}</h4>;
+      if (line.startsWith("# "))
+        return <h3 key={idx}>{line.replace("# ", "")}</h3>;
+      if (line.startsWith("- "))
+        return <li key={idx}>{line.replace("- ", "")}</li>;
       return <p key={idx}>{line}</p>;
     });
 
@@ -143,117 +149,120 @@ useEffect(() => {
       </div>
 
       {/* MOBILE TOGGLE */}
-   <div className="mobile-toggle">
-  <div className="toggle-pill">
-    <button
-      className={`toggle-btn ${activeTab === "chat" ? "active" : ""}`}
-      onClick={() => setActiveTab("chat")}
-    >
-      Chat
-    </button>
+      <div className="mobile-toggle">
+        <div className="toggle-pill">
+          <button
+            className={`toggle-btn ${activeTab === "chat" ? "active" : ""}`}
+            onClick={() => setActiveTab("chat")}
+          >
+            Chat
+          </button>
 
-    <button
-      className={`toggle-btn ${activeTab === "insights" ? "active" : ""}`}
-      onClick={() => setActiveTab("insights")}
-    >
-      Insights
-      {/* optional notification dot */}
-      {insights.length > 0 && <span className="insight-dot" />}
-    </button>
-  </div>
-</div>
-
-
-
-
-
+          <button
+            className={`toggle-btn ${activeTab === "insights" ? "active" : ""}`}
+            onClick={() => setActiveTab("insights")}
+          >
+            Insights
+            {/* optional notification dot */}
+            {insights.length > 0 && <span className="insight-dot" />}
+          </button>
+        </div>
+      </div>
 
       {/* BODY */}
-<div className="chat-body">
-  {/* CHAT PANEL */}
-  {(!isMobile || activeTab === "chat") && (
-    <div className="chat-panel">
-      {messages.length === 0 ? (
-        <div className="chat-empty">
-          <p>Start a conversation with {firstName}</p>
-          <span>
-            Ask about their needs, pitch your idea, or explore how they make decisions.
-          </span>
-        </div>
-      ) : (
-        <div className="chat-content">
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              style={{ color: "black" }}
-              className={`message ${
-                msg.sender === "user" ? "user-msg" : "persona-msg"
-              }`}
-            >
-              {msg.sender === "persona" ? (
-                <div className="persona-bubble">{formatMessage(msg.text)}</div>
-              ) : (
-                <div className="user-bubble">{msg.text}</div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="chat-body">
+        {/* CHAT PANEL */}
+        {(!isMobile || activeTab === "chat") && (
+          <div className="chat-panel">
+            {messages.length === 0 ? (
+              <div className="chat-empty">
+                <p>Start a conversation with {firstName}</p>
+                <span>
+                  Ask about their needs, pitch your idea, or explore how they
+                  make decisions.
+                </span>
+              </div>
+            ) : (
+              <div className="chat-content">
+                {messages.map((msg, index) => (
+                  <div
+                    key={index}
+                    style={{ color: "black" }}
+                    className={`message ${
+                      msg.sender === "user" ? "user-msg" : "persona-msg"
+                    }`}
+                  >
+                    {msg.sender === "persona" ? (
+                      <div className="persona-bubble">
+                        {formatMessage(msg.text)}
+                      </div>
+                    ) : (
+                      <div className="user-bubble">{msg.text}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
 
-      {/* INPUT */}
-      <div className="chat-input">
-        <input
-          placeholder="Type your message…"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && !sending && handleSend()}
-          disabled={sending}
-        />
-        <button onClick={handleSend} disabled={sending}>
-          {sending ? <span className="spinner" /> : "➤"}
-        </button>
-      </div>
-    </div>
-  )}
-
-  {/* INSIGHTS PANEL */}
-  {(!isMobile || activeTab === "insights") && (
-    !isAnonymous ? (
-      <aside className="insights-panel">
-        <h4>Insights</h4>
-        {insights.length === 0 ? (
-          <p className="insights-placeholder">
-            Insights will appear here as you converse with {firstName}.
-          </p>
-        ) : (
-          insights.map((insight, index) => (
-            <div key={index} className="insight-item">
-              <strong>
-                <img src={identifier} alt="" />
-                {insight.title}
-              </strong>
-              <p>{insight.text}</p>
+            {/* INPUT */}
+            <div className="chat-input">
+              <input
+                placeholder="Type your message…"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !sending && handleSend()}
+                disabled={sending}
+              />
+              <button onClick={handleSend} disabled={sending}>
+                {sending ? <span className="spinner" /> : "➤"}
+              </button>
             </div>
-          ))
+          </div>
         )}
-      </aside>
-    ) : (
-      <aside className="insights-panel disabled">
-        <h4>Insights</h4>
-        <p className="insights-placeholder">
-          Sign in to unlock conversation insights and history.
-        </p>
-      </aside>
-    )
-  )}
-</div>
 
 
 
-        
+        {/* INSIGHTS PANEL */}
+        {(!isMobile || activeTab === "insights") &&
+          (!isAnonymous ? (
+            <aside className="insights-panel">
+              <h4>Insights</h4>
+              {isAnonymous ? (
+                <>
+                  <p className="insights-placeholder">
+                    Sign in to unlock deep insights about motivations,
+                    objections, and decision drivers.
+                  </p>
 
-
-
+                  <button
+                    className="insights-auth-btn"
+                    onClick={() => navigate("/auth/google-login")}
+                  >
+                    Sign in with Google
+                  </button>
+                </>
+              ) : insights.length === 0 ? (
+                <p className="insights-placeholder">
+                  Insights will appear here as you converse with {firstName}.
+                </p>
+              ) : (
+                insights.map((insight, index) => (
+                  <div key={index} className="insight-item">
+                    <strong>{insight.title}</strong>
+                    <p>{insight.text}</p>
+                  </div>
+                ))
+              )}
+            </aside>
+          ) : (
+            <aside className="insights-panel disabled">
+              <h4>Insights</h4>
+              <p className="insights-placeholder">
+                Sign in to unlock conversation insights and history.
+              </p>
+            </aside>
+          ))}
+      </div>
     </section>
   );
 }
