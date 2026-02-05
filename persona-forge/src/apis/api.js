@@ -14,7 +14,7 @@ const handleResponse = async (response) => {
       .catch(() => ({ message: "Unknown error" }));
 
     throw new Error(
-      `${response.status}: ${errorData.message || "Backend error"}`
+      `${response.status}: ${errorData.message || "Backend error"}`,
     );
   }
   return response.json();
@@ -29,8 +29,11 @@ const apiCall = async (endpoint, options = {}) => {
     ...(sessionId && { Authorization: `Bearer ${sessionId}` }),
   };
 
+  // Normalize the URL to avoid double slashes
+  const url = `${BASE_URL.replace(/\/$/, "")}${endpoint}`;
+
   try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
+    const response = await fetch(url, {
       ...options,
       headers,
     });
@@ -62,7 +65,8 @@ export const createAnonymousSession = async () => {
 };
 
 export const authenticateWithGoogle = async (idToken, sessionId) => {
-  const res = await fetch(`${BASE_URL}/api/auth/google`, {
+  const url = `${BASE_URL.replace(/\/$/, "")}/api/auth/google`;
+  const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
