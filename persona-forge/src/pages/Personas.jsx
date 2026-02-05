@@ -84,7 +84,7 @@ export default function Personas() {
             Select someone to talk to. Each persona has distinct motivations,
             constraints, and decision-making patterns.
           </p>
-          <p><strong><h2>OR</h2></strong></p>
+          <h2>OR</h2>
           {/* NEW: Create Custom Persona Button */}
     <button
       className="create-persona-btn"
