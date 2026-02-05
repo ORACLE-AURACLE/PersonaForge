@@ -141,6 +141,7 @@ export default function PersonaChat() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              style={{color: "black"}}
             />
             <button onClick={handleSend}>➤</button>
           </div>
