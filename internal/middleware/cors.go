@@ -35,6 +35,7 @@ func DefaultCORSConfig() *CORSConfig {
 			"Accept",
 			"Authorization",
 			"X-Requested-With",
+			"X-Session-Id",
 		},
 		ExposedHeaders: []string{
 			"Content-Length",
