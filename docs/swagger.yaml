@@ -56,6 +56,9 @@ definitions:
     properties:
       analysis:
         type: string
+      persona_id:
+        description: Profile (persona) in the conversation
+        type: integer
       session_id:
         type: string
     type: object
@@ -332,11 +335,20 @@ paths:
       tags:
       - chat
   /api/insight:
-    post:
-      consumes:
-      - application/json
-      description: Generate structured insights about the authenticated user's current
-        session
+    get:
+      description: 'Pull insights for a session. Open to all (no auth required). Query
+        params only: session_id required for guests, optional for authenticated (omit
+        to use current session). persona_id optional to scope to that profile''s messages.'
+      parameters:
+      - description: Session ID (required for guests; omit for current session when
+          authenticated)
+        in: query
+        name: session_id
+        type: string
+      - description: 'Persona ID (optional: scope to this profile''s messages)'
+        in: query
+        name: persona_id
+        type: integer
       produces:
       - application/json
       responses:
@@ -353,8 +365,8 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/response.APIResponse'
-        "401":
-          description: Unauthorized
+        "404":
+          description: Not Found
           schema:
             $ref: '#/definitions/response.APIResponse'
         "500":

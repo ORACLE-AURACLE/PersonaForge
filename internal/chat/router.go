@@ -26,7 +26,6 @@ func RegisterRoutes(router *gin.RouterGroup, handler *Handler, jwtService *auth.
 		chat.GET("/:session_id/history", middleware.OptionalAuthMiddleware(jwtService), chatRateLimit, handler.GetConversationHistoryBySession)
 	}
 
-	// Insight endpoint
-	// Insights require authentication (guests should not be able to retrieve post-hoc summaries).
-	router.POST("/insight", middleware.AuthMiddleware(jwtService), handler.GenerateInsight)
+	// Insight: open to all (guests and authenticated). GET, query session_id and optional persona_id.
+	router.GET("/insight", middleware.OptionalAuthMiddleware(jwtService), chatRateLimit, handler.GenerateInsight)
 }

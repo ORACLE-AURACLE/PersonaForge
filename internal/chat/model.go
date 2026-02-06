@@ -32,12 +32,13 @@ type ConversationHistory struct {
 
 // InsightRequest is the request for conversation insights
 type InsightRequest struct {
-	// No body fields required; insights are generated for the authenticated user's current session.
+	SessionID string `json:"session_id,omitempty"` // Optional: omit to use current session from auth
 }
 
 // InsightResponse is the response containing conversation insights
 type InsightResponse struct {
 	SessionID string `json:"session_id"`
+	PersonaID int    `json:"persona_id"` // Profile (persona) in the conversation
 	Analysis  string `json:"analysis"`
 }
 

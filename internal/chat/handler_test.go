@@ -208,21 +208,19 @@ func TestChatEndpoints_GuestNoHistory_AuthHasHistoryAndInsight(t *testing.T) {
 		}
 	}
 
-	// Insight requires auth
+	// Guest without session_id gets 400
 	{
-		req := httptest.NewRequest(http.MethodPost, "/api/insight", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/insight", nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
-		if w.Code != http.StatusUnauthorized {
-			t.Fatalf("expected 401 got %d body=%s", w.Code, w.Body.String())
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400 got %d body=%s", w.Code, w.Body.String())
 		}
 	}
 
-	// Insight works for authenticated session
+	// Guest can get insight with session_id (open to all)
 	{
-		token, _ := jwtSvc.GenerateToken(1, "u@example.com", "authsess")
-		req := httptest.NewRequest(http.MethodPost, "/api/insight", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
+		req := httptest.NewRequest(http.MethodGet, "/api/insight?session_id="+guestSession+"&persona_id=1", nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 		if w.Code != http.StatusOK {
@@ -230,5 +228,15 @@ func TestChatEndpoints_GuestNoHistory_AuthHasHistoryAndInsight(t *testing.T) {
 		}
 	}
 
-	_ = guestSession
+	// Authenticated user can get insight (current session from token)
+	{
+		token, _ := jwtSvc.GenerateToken(1, "u@example.com", "authsess")
+		req := httptest.NewRequest(http.MethodGet, "/api/insight", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200 got %d body=%s", w.Code, w.Body.String())
+		}
+	}
 }

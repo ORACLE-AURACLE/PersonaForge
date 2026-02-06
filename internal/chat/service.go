@@ -248,23 +248,31 @@ func (s *Service) GetConversationHistoryBySession(ctx context.Context, userID *i
 	}, nil
 }
 
-// GenerateInsight generates insights for a conversation
-func (s *Service) GenerateInsight(ctx context.Context, userID int, sessionID string) (*InsightResponse, error) {
+// GenerateInsight generates insights for a conversation (guests: anonymous session only; auth: own session or anonymous).
+func (s *Service) GenerateInsight(ctx context.Context, userID *int, isAuthenticated bool, sessionID string, filterPersonaID *int) (*InsightResponse, error) {
 	session, err := s.repo.GetSessionByID(sessionID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get session: %w", err)
-	}
-	if session == nil {
 		return nil, fmt.Errorf("session not found")
 	}
-	if session.UserID == nil || *session.UserID != userID {
+	if session == nil || session.ExpiresAt.Before(time.Now()) {
 		return nil, fmt.Errorf("session not found")
 	}
-	if session.ExpiresAt.Before(time.Now()) {
-		return nil, fmt.Errorf("session not found")
+	if isAuthenticated && userID != nil {
+		if session.UserID == nil || *session.UserID != *userID {
+			return nil, fmt.Errorf("session not found")
+		}
+	} else {
+		if !session.IsAnonymous {
+			return nil, fmt.Errorf("session not found")
+		}
 	}
 
-	all, err := s.repo.GetAllMessagesForSession(session.ID)
+	var all []MessageDTO
+	if filterPersonaID != nil {
+		all, err = s.repo.GetConversationHistory(session.ID, *filterPersonaID)
+	} else {
+		all, err = s.repo.GetAllMessagesForSession(session.ID)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -281,14 +289,15 @@ func (s *Service) GenerateInsight(ctx context.Context, userID int, sessionID str
 		return nil, fmt.Errorf("no messages found in session")
 	}
 
-	// Generate insight
 	insight, err := s.geminiClient.GenerateInsight(ctx, messages)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate insight: %w", err)
 	}
 
+	personaID := all[len(all)-1].PersonaID
 	return &InsightResponse{
 		SessionID: sessionID,
+		PersonaID: personaID,
 		Analysis:  insight.Analysis,
 	}, nil
 }

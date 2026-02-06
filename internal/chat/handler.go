@@ -168,33 +168,50 @@ func (h *Handler) GetConversationHistoryBySession(c *gin.Context) {
 
 // GenerateInsight godoc
 // @Summary Generate conversation insights
-// @Description Generate structured insights about the authenticated user's current session
+// @Description Pull insights for a session. Open to all (no auth required). Query params only: session_id required for guests, optional for authenticated (omit to use current session). persona_id optional to scope to that profile's messages.
 // @Tags chat
-// @Accept json
 // @Produce json
+// @Param session_id query string false "Session ID (required for guests; omit for current session when authenticated)"
+// @Param persona_id query int false "Persona ID (optional: scope to this profile's messages)"
 // @Success 200 {object} response.APIResponse{data=InsightResponse}
 // @Failure 400 {object} response.APIResponse
-// @Failure 401 {object} response.APIResponse
+// @Failure 404 {object} response.APIResponse
 // @Failure 500 {object} response.APIResponse
-// @Router /api/insight [post]
+// @Router /api/insight [get]
 func (h *Handler) GenerateInsight(c *gin.Context) {
-	userIDVal, ok := c.Get("user_id")
-	if !ok {
-		response.Unauthorized(c, "Authentication required")
+	var userID *int
+	isAuthenticated := false
+	if id, exists := c.Get("user_id"); exists {
+		uid := id.(int)
+		userID = &uid
+		isAuthenticated = true
+	}
+	if auth, exists := c.Get("is_authenticated"); exists {
+		isAuthenticated = auth.(bool)
+	}
+
+	sessionID := c.Query("session_id")
+	if sessionID == "" && isAuthenticated {
+		if val, ok := c.Get("session_id"); ok {
+			sessionID = val.(string)
+		}
+	}
+	if sessionID == "" {
+		response.BadRequest(c, "session_id required (query param for guests, or omit when authenticated to use current session)")
 		return
 	}
-	userID := userIDVal.(int)
 
-	sessionIDVal, ok := c.Get("session_id")
-	if !ok {
-		response.Unauthorized(c, "Session not found")
-		return
+	var personaID *int
+	if p := c.Query("persona_id"); p != "" {
+		var id int
+		if _, err := fmt.Sscanf(p, "%d", &id); err == nil {
+			personaID = &id
+		}
 	}
-	sessionID := sessionIDVal.(string)
 
-	insight, err := h.service.GenerateInsight(c.Request.Context(), userID, sessionID)
+	insight, err := h.service.GenerateInsight(c.Request.Context(), userID, isAuthenticated, sessionID, personaID)
 	if err != nil {
-		response.InternalServerError(c, err.Error())
+		response.NotFound(c, err.Error())
 		return
 	}
 

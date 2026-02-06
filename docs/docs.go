@@ -323,11 +323,8 @@ const docTemplate = `{
             }
         },
         "/api/insight": {
-            "post": {
-                "description": "Generate structured insights about the authenticated user's current session",
-                "consumes": [
-                    "application/json"
-                ],
+            "get": {
+                "description": "Pull insights for a session. Open to all (no auth required). Query params only: session_id required for guests, optional for authenticated (omit to use current session). persona_id optional to scope to that profile's messages.",
                 "produces": [
                     "application/json"
                 ],
@@ -335,6 +332,20 @@ const docTemplate = `{
                     "chat"
                 ],
                 "summary": "Generate conversation insights",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID (required for guests; omit for current session when authenticated)",
+                        "name": "session_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Persona ID (optional: scope to this profile's messages)",
+                        "name": "persona_id",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -360,8 +371,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/response.APIResponse"
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized",
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
@@ -701,6 +712,10 @@ const docTemplate = `{
             "properties": {
                 "analysis": {
                     "type": "string"
+                },
+                "persona_id": {
+                    "description": "Profile (persona) in the conversation",
+                    "type": "integer"
                 },
                 "session_id": {
                     "type": "string"
