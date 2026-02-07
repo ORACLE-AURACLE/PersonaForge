@@ -465,12 +465,18 @@
 .persona-msg {
   align-self: flex-start;
   max-width: 75%;
+    background-color: #f0eae0;
+    padding: 10px;
+    border-radius: 5px;
 }
 
 .user-msg {
   align-self: flex-end;
   margin-left: auto;
   max-width: 75%;
+   background-color: #d4c5a9;
+    padding: 10px;
+    border-radius: 5px;
 }
 
 .persona-bubble,
