@@ -105,6 +105,12 @@ export const getPersonaById = async (id) => {
   return apiCall(`/api/personas/${id}`);
 };
 
+export const getPersonasBySession = async (sessionId) => {
+  const url = `${BASE_URL.replace(/\/$/, "")}/api/personas/by-session?session_id=${sessionId}`;
+  const response = await fetch(url);
+  return await handleResponse(response);
+};
+
 export const deletePersona = async (id) => {
   return apiCall(`/api/personas/${id}`, { method: "DELETE" });
 };

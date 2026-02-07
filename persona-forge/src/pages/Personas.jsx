@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getPersonas, deletePersona } from "../apis/api";
+import { getPersonas, deletePersona, getPersonasBySession } from "../apis/api";
 import logo from "../assets/images/Main-Logo.svg";
 import "../App.css";
 
@@ -13,23 +13,23 @@ export default function Personas() {
   useEffect(() => {
     const fetchPersonas = async () => {
       try {
-        const response = await getPersonas();
-        let fetchedPersonas = [];
-
-        if (response.success === false) {
-          setError(response.message);
+        // Fetch all default personas
+        const allResponse = await getPersonas();
+        let allPersonas = [];
+        if (allResponse.success === false) {
+          setError(allResponse.message);
           return;
-        } else if (Array.isArray(response)) {
-          fetchedPersonas = response;
-        } else if (response.data && Array.isArray(response.data)) {
-          fetchedPersonas = response.data;
+        } else if (Array.isArray(allResponse)) {
+          allPersonas = allResponse;
+        } else if (allResponse.data && Array.isArray(allResponse.data)) {
+          allPersonas = allResponse.data;
         } else {
-          setError("Unexpected response format");
+          setError("Unexpected response format for all personas");
           return;
         }
 
-        // Ensure personality is always an array
-        fetchedPersonas = fetchedPersonas.map((p) => {
+        // Ensure personality is always an array for all
+        allPersonas = allPersonas.map((p) => {
           if (
             p.blueprint?.personality &&
             typeof p.blueprint.personality === "string"
@@ -41,7 +41,24 @@ export default function Personas() {
           return p;
         });
 
-        setPersonas(fetchedPersonas);
+        // Fetch personas by session
+        const sessionId = localStorage.getItem("session_id");
+        let sessionPersonas = [];
+        if (sessionId) {
+          const sessionResponse = await getPersonasBySession(sessionId);
+          if (sessionResponse.success === false) {
+            // Don't set error for session, just skip
+          } else if (Array.isArray(sessionResponse)) {
+            sessionPersonas = sessionResponse;
+          } else if (sessionResponse.data && Array.isArray(sessionResponse.data)) {
+            sessionPersonas = sessionResponse.data;
+          }
+        }
+
+        // Merge results, assuming no duplicates
+        const mergedPersonas = [...allPersonas, ...sessionPersonas];
+
+        setPersonas(mergedPersonas);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -86,12 +103,12 @@ export default function Personas() {
           </p>
           <h2>OR</h2>
           {/* NEW: Create Custom Persona Button */}
-    <button
-      className="create-persona-btn"
-      onClick={() => navigate("/personas/create")}
-    >
-      + Create Custom Persona
-    </button>
+          <button
+            className="create-persona-btn"
+            onClick={() => navigate("/personas/create")}
+          >
+            + Create Custom Persona
+          </button>
         </div>
 
         {loading && <p style={{ color: "black" }}>Loading personas...</p>}
@@ -101,56 +118,53 @@ export default function Personas() {
           </div>
         )}
 
-     <div className="persona-grid">
-  {personas.map((persona) => (
-    <div
-      key={persona.id}
-      className="personaCard"
-      onClick={() => navigate(`/personas/${persona.id}`)}
-    >
-      {/* DELETE (custom personas only) */}
-      {persona.custom && (
-        <button
-          className="persona-delete"
-          onClick={(e) => {
-            e.stopPropagation(); // ⛔ prevent card navigation
-            handleDelete(persona.id);
-          }}
-          aria-label="Delete persona"
-        >
-          ✕
-        </button>
-      )}
+        <div className="persona-grid">
+          {personas.map((persona) => (
+            <div
+              key={persona.id}
+              className="personaCard"
+              onClick={() => navigate(`/personas/${persona.id}`)}
+            >
+              {/* DELETE (custom personas only) */}
+              {persona.custom && (
+                <button
+                  className="persona-delete"
+                  onClick={(e) => {
+                    e.stopPropagation(); // ⛔ prevent card navigation
+                    handleDelete(persona.id);
+                  }}
+                  aria-label="Delete persona"
+                >
+                  ✕
+                </button>
+              )}
 
-      <h3>{persona.name}</h3>
+              <h3>{persona.name}</h3>
 
-      <span className="persona-meta">
-        {persona.role || "Default Persona"}
-      </span>
+             
 
-      <p>
-        {persona.description ||
-          persona.blueprint?.description ||
-          "No description available."}
-      </p>
+              <p>
+                {persona.description ||
+                  persona.blueprint?.description ||
+                  "No description available."}
+              </p>
 
-      {/* Personality Tags */}
-      <div className="persona-tags">
-        {Array.isArray(persona.blueprint?.personality) &&
-        persona.blueprint.personality.length > 0 ? (
-          persona.blueprint.personality.map((tag) => (
-            <span key={tag} className="persona-tag">
-              {tag}
-            </span>
-          ))
-        ) : (
-          <span className="no-tags">No personality data</span>
-        )}
-      </div>
-    </div>
-  ))}
-</div>
-
+              {/* Personality Tags */}
+              <div className="persona-tags">
+                {Array.isArray(persona.blueprint?.personality) &&
+                persona.blueprint.personality.length > 0 ? (
+                  persona.blueprint.personality.map((tag) => (
+                    <span key={tag} className="persona-tag">
+                      {tag}
+                    </span>
+                  ))
+                ) : (
+                  <span className="no-tags">No personality data</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
