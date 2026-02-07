@@ -1,14 +1,5 @@
-# TODO for PersonaForge Modifications
+# TODO: Replace "Loading persona..." with Fancy Animation
 
-## Task Overview
-
-- Remove custom and chat buttons in personas page, replace with personalities display.
-- In chat page, position persona name as title with description, add Persona Forge Logo prominently.
-- Ensure all text across the app is dark color.
-
-## Steps
-
-- [ ] Modify Personas.jsx: Remove "Create Custom Persona" button and persona actions (Chat/Delete), add personality traits display.
-- [ ] Modify PersonaChat.jsx: Update header to include logo prominently, display persona name and description as title.
-- [ ] Update App.css: Change all text colors to dark (e.g., #1A1A1A).
-- [ ] Test the changes by running the app.
+- [x] Replace `<p>Loading persona...</p>` in PersonaChat.jsx with a `<div className="loading-spinner">` containing a spinning loader element
+- [x] Add CSS styles in App.css for `.loading-spinner` to center the animation on the page and include a smooth spinning animation
+- [x] Test the changes to ensure the animation displays correctly during loading state

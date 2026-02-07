@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState, useEffect, createContext } from "react";
 import Home from "./pages/Home";
 import Personas from "./pages/Personas";
-import PersonaChat from "./pages/PersonaChat";
+import PersonaChat from "./components/PersonaChat";
 import GoogleAuth from "./pages/GoogleAuth";
 import CreatePersona from "./pages/CreatePersona";
 import { createAnonymousSession } from "./apis/api";

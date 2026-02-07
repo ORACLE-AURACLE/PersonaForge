@@ -88,10 +88,17 @@ export const getPersonas = async () => {
 };
 
 export const createPersona = async (name, blueprint) => {
-  return apiCall("/api/personas", {
+  const sessionId = localStorage.getItem("session_id");
+  const url = `${BASE_URL.replace(/\/$/, "")}/api/personas`;
+  const response = await fetch(url, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(sessionId && { "X-Session-ID": sessionId }),
+    },
     body: JSON.stringify({ name, blueprint }),
   });
+  return await handleResponse(response);
 };
 
 export const getPersonaById = async (id) => {
@@ -116,16 +123,23 @@ export const sendMessage = async ({ message, persona_id, session_id }) => {
   });
 };
 
-export const getChatHistory = async (personaId) => {
-  return apiCall(`/api/chat/history?persona_id=${personaId}`);
+export const getChatHistory = async (sessionId, personaId) => {
+  console.log("Calling getChatHistory with sessionId:", sessionId, "personaId:", personaId);
+  const result = await apiCall(`/api/chat/${sessionId}/history?persona_id=${personaId}`);
+  console.log("getChatHistory result:", result);
+  return result;
 };
 
-// =======================
-// INSIGHTS API
-// =======================
-export const getInsights = async (sessionId) => {
-  return apiCall("/api/insight", {
-    method: "POST",
-    body: JSON.stringify({ session_id: sessionId }),
-  });
+
+// ----------------------------
+// getInsights helper
+// ----------------------------
+export const getInsights = async (sessionId, personaId) => {
+  const params = new URLSearchParams();
+  if (sessionId) params.append("session_id", sessionId);
+  if (personaId) params.append("persona_id", personaId);
+
+  const url = `/api/insight?${params.toString()}`;
+  console.log("GET insights URL:", url);
+  return apiCall(url);
 };

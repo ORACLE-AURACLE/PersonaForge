@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createPersona } from "../apis/api";
+import { createPersona, createAnonymousSession } from "../apis/api";
 import logo from "../assets/images/Main-Logo.svg"; // 👈 adjust path if needed
 
 export default function CreatePersona() {
@@ -34,6 +34,11 @@ export default function CreatePersona() {
     setError(null);
 
     try {
+      // Ensure anonymous session exists for guest users
+      if (!localStorage.getItem("session_id")) {
+        await createAnonymousSession();
+      }
+
       const payload = {
         name,
         blueprint: {
@@ -45,7 +50,7 @@ export default function CreatePersona() {
         },
       };
 
-      await createPersona(payload);
+      await createPersona(name, payload.blueprint);
       navigate("/personas");
     } catch (err) {
       setError(err.message || "Failed to create persona");
@@ -69,69 +74,66 @@ export default function CreatePersona() {
           </p>
         </header>
 
+        <div className="create-persona-container">
+          {/* 🔒 FORM — UNCHANGED */}
+          <form onSubmit={handleSubmit} className="create-persona-form">
+            <input
+              className="input"
+              placeholder="Persona name (e.g. Lena)"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
 
-      <div className="create-persona-container">
-        {/* 🔒 FORM — UNCHANGED */}
-        <form onSubmit={handleSubmit} className="create-persona-form">
-          <input
-            className="input"
-            placeholder="Persona name (e.g. Lena)"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
+            <textarea
+              className="textarea"
+              placeholder="Description"
+              value={form.description}
+              onChange={(e) => handleChange("description", e.target.value)}
+              required
+            />
 
-          <textarea
-            className="textarea"
-            placeholder="Description"
-            value={form.description}
-            onChange={(e) => handleChange("description", e.target.value)}
-            required
-          />
+            <input
+              className="input"
+              placeholder="Tone"
+              value={form.tone}
+              onChange={(e) => handleChange("tone", e.target.value)}
+              required
+            />
 
-          <input
-            className="input"
-            placeholder="Tone"
-            value={form.tone}
-            onChange={(e) => handleChange("tone", e.target.value)}
-            required
-          />
+            <textarea
+              className="textarea"
+              placeholder="Personality (one per line)"
+              value={form.personality}
+              onChange={(e) => handleChange("personality", e.target.value)}
+              required
+            />
 
-          <textarea
-            className="textarea"
-            placeholder="Personality (one per line)"
-            value={form.personality}
-            onChange={(e) => handleChange("personality", e.target.value)}
-            required
-          />
+            <textarea
+              className="textarea"
+              placeholder="Expertise (one per line)"
+              value={form.expertise}
+              onChange={(e) => handleChange("expertise", e.target.value)}
+              required
+            />
 
-          <textarea
-            className="textarea"
-            placeholder="Expertise (one per line)"
-            value={form.expertise}
-            onChange={(e) => handleChange("expertise", e.target.value)}
-            required
-          />
+            <textarea
+              className="textarea"
+              placeholder="Guidelines (one per line)"
+              value={form.guidelines}
+              onChange={(e) => handleChange("guidelines", e.target.value)}
+              required
+            />
 
-          <textarea
-            className="textarea"
-            placeholder="Guidelines (one per line)"
-            value={form.guidelines}
-            onChange={(e) => handleChange("guidelines", e.target.value)}
-            required
-          />
+            <button className="primary-btn" disabled={loading}>
+              {loading ? "Creating..." : "Create Persona"}
+            </button>
+          </form>
 
-          <button className="primary-btn" disabled={loading}>
-            {loading ? "Creating..." : "Create Persona"}
-          </button>
-        </form>
-
-        {error && <p className="error-message">{error}</p>}
-      </div>
-
+          {error && <p className="error-message">{error}</p>}
+        </div>
       </div>
       {/* 🔶 HEADER / HERO (NEW) */}
-
     </section>
   );
 }

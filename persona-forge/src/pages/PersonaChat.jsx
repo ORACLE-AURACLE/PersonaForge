@@ -7,14 +7,16 @@ import {
   getInsights,
 } from "../apis/api";
 import { SessionContext } from "../App";
+import { v4 as uuidv4 } from "uuid"; // to generate guest session IDs
 import logo from "../assets/images/Main-Logo.svg";
-import identifier from "../assets/images/Background.svg";
 import "../App.css";
+import ReactMarkdown from "react-markdown";
 
 export default function PersonaChat() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { sessionId } = useContext(SessionContext);
+  const { sessionId: contextSessionId, setSessionId } =
+    useContext(SessionContext);
 
   const [persona, setPersona] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,18 +28,56 @@ export default function PersonaChat() {
   const [insights, setInsights] = useState([]);
   const [sending, setSending] = useState(false);
 
-  const isAnonymous = !localStorage.getItem("token");
-
   const personaId = parseInt(id, 10);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
+  // ----------------------------
+  // Helper: parse analysis string safely
+  // ----------------------------
+  const parseAnalysis = (analysis) => {
+    if (!analysis || typeof analysis !== "string") return [];
+    const sections = analysis.split("\n\n").filter((s) => s.trim());
+    return sections.map((section) => {
+      const lines = section.split("\n");
+      const title = lines[0]
+        .replace(/^\d+\.\s*\*\*/, "")
+        .replace(/\*\*$/, "")
+        .trim();
+      const text = lines.slice(1).join("\n").trim();
+      return { title, text };
+    });
+  };
+
+  // ----------------------------------
+  // Ensure we have a sessionId
+  // ----------------------------------
+  const [sessionId, setLocalSessionId] = useState(null);
+
+  useEffect(() => {
+    let id = contextSessionId || localStorage.getItem("session_id");
+    if (!id) {
+      id = uuidv4(); // generate a new guest session
+      localStorage.setItem("session_id", id);
+      if (setSessionId) setSessionId(id); // update context if available
+      console.log("Generated new guest sessionId:", id);
+    } else {
+      console.log("Using existing sessionId:", id);
+    }
+    setLocalSessionId(id);
+  }, [contextSessionId, setSessionId]);
+
+  // ----------------------------
+  // Handle window resize (mobile)
+  // ----------------------------
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Fetch persona and chat history
+  // ----------------------------
+  // Fetch persona & chat history
+  // ----------------------------
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -46,16 +86,20 @@ export default function PersonaChat() {
           setError(personaResponse?.message || "Failed to fetch persona");
           return;
         }
-
         setPersona(personaResponse.data);
 
-        if (!isAnonymous) {
-          const historyResponse = await getChatHistory(id);
+        if (sessionId) {
+          const historyResponse = await getChatHistory(sessionId, id);
           if (historyResponse?.success === false) {
             setError(historyResponse.message);
           } else {
             setMessages(
-              Array.isArray(historyResponse.data) ? historyResponse.data : [],
+              Array.isArray(historyResponse.data)
+                ? historyResponse.data.map((msg) => ({
+                    ...msg,
+                    timestamp: msg.timestamp || new Date(),
+                  }))
+                : [],
             );
           }
         }
@@ -65,9 +109,14 @@ export default function PersonaChat() {
         setLoading(false);
       }
     };
-    fetchData();
-  }, [id, isAnonymous]);
+    if (sessionId) {
+      fetchData();
+    }
+  }, [id, sessionId]);
 
+  // ----------------------------
+  // Send message & fetch insights
+  // ----------------------------
   const handleSend = async () => {
     if (!message.trim() || !sessionId) return;
 
@@ -80,6 +129,8 @@ export default function PersonaChat() {
         persona_id: personaId,
         session_id: sessionId,
       };
+
+      console.log("Sending message:", requestBody);
       const response = await sendMessage(requestBody);
 
       if (response?.status !== "success") {
@@ -89,24 +140,49 @@ export default function PersonaChat() {
 
       const assistantMessage = response.data.message.content;
 
-      // Add user message immediately for chat-like feel
       setMessages((prev) => [
         ...prev,
-        { text: message, sender: "user" },
-        { text: assistantMessage, sender: "persona" },
+        { text: message, sender: "user", timestamp: new Date() },
+        { text: assistantMessage, sender: "persona", timestamp: new Date() },
       ]);
-
       setMessage("");
 
-      if (!isAnonymous) {
-        const insightsResponse = await getInsights(sessionId);
-        if (insightsResponse?.success !== false) {
-          setInsights(
-            Array.isArray(insightsResponse.data) ? insightsResponse.data : [],
-          );
+      // Fetch insights safely
+      if (sessionId) {
+        console.log(
+          "Fetching insights for sessionId:",
+          sessionId,
+          "personaId:",
+          personaId,
+        );
+        const insightsResponse = await getInsights(sessionId, personaId);
+        console.log("Insights API response:", insightsResponse);
+
+        let parsed = [];
+        if (insightsResponse?.status === "success" && insightsResponse.data) {
+          if (Array.isArray(insightsResponse.data)) {
+            parsed = insightsResponse.data; // already structured
+          } else if (typeof insightsResponse.data === "string") {
+            parsed = parseAnalysis(insightsResponse.data); // parse string safely
+          } else if (
+            typeof insightsResponse.data === "object" &&
+            insightsResponse.data.analysis
+          ) {
+            parsed = parseAnalysis(insightsResponse.data.analysis); // parse the analysis string from object
+          } else {
+            console.warn(
+              "Unexpected insights data type:",
+              insightsResponse.data,
+            );
+          }
+        } else {
+          console.log("No insights returned or API failed");
         }
+
+        setInsights(parsed);
       }
     } catch (err) {
+      console.error("Error in handleSend:", err);
       setError(err.message);
     } finally {
       setSending(false);
@@ -119,7 +195,6 @@ export default function PersonaChat() {
 
   const firstName = persona?.name?.split(" ")[0] || "this persona";
 
-  // Helper to render structured messages with headings, subtitles, bullets
   const formatMessage = (text) =>
     text.split("\n").map((line, idx) => {
       if (line.startsWith("## "))
@@ -131,9 +206,14 @@ export default function PersonaChat() {
       return <p key={idx}>{line}</p>;
     });
 
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
   return (
     <section className="chat-page">
-      {/* HEADER */}
       <div className="personaTop">
         <img src={logo} alt="PersonaForge" className="logo" />
         <button className="back-btn" onClick={() => navigate(-1)}>
@@ -144,11 +224,9 @@ export default function PersonaChat() {
       <div className="headCenterHero" style={{ color: "black" }}>
         <div className="headerCenter">
           <h3>{persona.name}</h3>
-          {/* <p>{persona.blueprint?.description || "No description available."}</p> */}
         </div>
       </div>
 
-      {/* MOBILE TOGGLE */}
       <div className="mobile-toggle">
         <div className="toggle-pill">
           <button
@@ -157,54 +235,47 @@ export default function PersonaChat() {
           >
             Chat
           </button>
-
           <button
             className={`toggle-btn ${activeTab === "insights" ? "active" : ""}`}
             onClick={() => setActiveTab("insights")}
           >
             Insights
-            {/* optional notification dot */}
             {insights.length > 0 && <span className="insight-dot" />}
           </button>
         </div>
       </div>
 
-      {/* BODY */}
       <div className="chat-body">
-        {/* CHAT PANEL */}
         {(!isMobile || activeTab === "chat") && (
           <div className="chat-panel">
             {messages.length === 0 ? (
               <div className="chat-empty">
                 <p>Start a conversation with {firstName}</p>
-                <span>
-                  Ask about their needs, pitch your idea, or explore how they
-                  make decisions.
-                </span>
               </div>
             ) : (
               <div className="chat-content">
-                {messages.map((msg, index) => (
+                {messages.map((msg, idx) => (
                   <div
-                    key={index}
-                    style={{ color: "black" }}
-                    className={`message ${
-                      msg.sender === "user" ? "user-msg" : "persona-msg"
-                    }`}
+                    key={idx}
+                    className={`message ${msg.sender === "user" ? "user-msg" : "persona-msg"}`}
                   >
                     {msg.sender === "persona" ? (
                       <div className="persona-bubble">
-                        {formatMessage(msg.text)}
+                        <ReactMarkdown children={msg.text} />
                       </div>
                     ) : (
-                      <div className="user-bubble">{msg.text}</div>
+                      <div className="user-bubble">
+                        <ReactMarkdown children={msg.text} />
+                      </div>
                     )}
+                    <div className="message-timestamp">
+                      {formatTimestamp(msg.timestamp)}
+                    </div>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* INPUT */}
             <div className="chat-input">
               <input
                 placeholder="Type your message…"
@@ -220,48 +291,27 @@ export default function PersonaChat() {
           </div>
         )}
 
-
-
-        {/* INSIGHTS PANEL */}
-        {(!isMobile || activeTab === "insights") &&
-          (!isAnonymous ? (
-            <aside className="insights-panel">
-              <h4>Insights</h4>
-              {isAnonymous ? (
-                <>
-                  <p className="insights-placeholder">
-                    Sign in to unlock deep insights about motivations,
-                    objections, and decision drivers.
-                  </p>
-
-                  <button
-                    className="insights-auth-btn"
-                    onClick={() => navigate("/auth/google-login")}
-                  >
-                    Sign in with Google
-                  </button>
-                </>
-              ) : insights.length === 0 ? (
-                <p className="insights-placeholder">
-                  Insights will appear here as you converse with {firstName}.
-                </p>
-              ) : (
-                insights.map((insight, index) => (
-                  <div key={index} className="insight-item">
-                    <strong>{insight.title}</strong>
-                    <p>{insight.text}</p>
-                  </div>
-                ))
-              )}
-            </aside>
-          ) : (
-            <aside className="insights-panel disabled">
-              <h4>Insights</h4>
+        {(!isMobile || activeTab === "insights") && (
+          <aside className={`insights-panel ${!sessionId ? "disabled" : ""}`}>
+            <h4>Insights</h4>
+            {!sessionId ? (
               <p className="insights-placeholder">
-                Sign in to unlock conversation insights and history.
+                No session available to fetch insights.
               </p>
-            </aside>
-          ))}
+            ) : insights.length === 0 ? (
+              <p className="insights-placeholder">
+                Insights will appear here as you converse with {firstName}.
+              </p>
+            ) : (
+              insights.map((insight, idx) => (
+                <div key={idx} className="insight-item">
+                  <h5 style={{ marginBottom: "0.25rem" }}>{insight.title}</h5>
+                  <ReactMarkdown children={insight.text} />
+                </div>
+              ))
+            )}
+          </aside>
+        )}
       </div>
     </section>
   );

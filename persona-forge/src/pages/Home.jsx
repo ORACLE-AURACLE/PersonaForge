@@ -32,7 +32,7 @@ export default function Home() {
           Choose a realistic persona, test your idea, and understand why they
           react the way they do.
         </p>
-        <button className="cta-button" onClick={() => navigate("/auth/google")}>
+        <button className="cta-button" onClick={() => navigate("/personas")}>
           Choose a Persona
         </button>
       </div>
