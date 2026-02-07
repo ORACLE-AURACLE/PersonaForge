@@ -14,6 +14,7 @@ type personaRepo interface {
 	GetPersonaByID(id int) (*storage.Persona, error)
 	ListPersonasForUser(userID int) ([]storage.Persona, error)
 	ListPersonasForSession(sessionID string) ([]storage.Persona, error)
+	ListCustomPersonasForSession(sessionID string) ([]storage.Persona, error)
 	ListDefaultPersonas() ([]storage.Persona, error)
 	DeletePersona(id int, userID int) error
 	InitializeDefaultPersonas() error
@@ -114,6 +115,23 @@ func (s *Service) ListPersonas(userID *int, sessionID *string, isAuthenticated b
 		responses = append(responses, *resp)
 	}
 
+	return responses, nil
+}
+
+// ListPersonasBySessionID returns all custom personas created by the given session (no auth).
+func (s *Service) ListPersonasBySessionID(sessionID string) ([]PersonaResponse, error) {
+	personas, err := s.repo.ListCustomPersonasForSession(sessionID)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]PersonaResponse, 0, len(personas))
+	for i := range personas {
+		resp, err := s.toResponse(&personas[i])
+		if err != nil {
+			return nil, err
+		}
+		responses = append(responses, *resp)
+	}
 	return responses, nil
 }
 

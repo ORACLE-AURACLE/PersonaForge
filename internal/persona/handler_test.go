@@ -100,6 +100,16 @@ func (r *fakePersonaRepo) ListPersonasForSession(sessionID string) ([]storage.Pe
 	return out, nil
 }
 
+func (r *fakePersonaRepo) ListCustomPersonasForSession(sessionID string) ([]storage.Persona, error) {
+	var out []storage.Persona
+	for _, p := range r.personas {
+		if !p.IsDefault && p.SessionID != nil && *p.SessionID == sessionID {
+			out = append(out, p)
+		}
+	}
+	return out, nil
+}
+
 func (r *fakePersonaRepo) ListDefaultPersonas() ([]storage.Persona, error) {
 	var out []storage.Persona
 	for _, p := range r.personas {
@@ -213,4 +223,54 @@ func TestPersonaEndpoints_GuestLimitAndAuthUnlimited(t *testing.T) {
 	}
 }
 
+func TestListPersonasBySession(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	repo := newFakePersonaRepo()
+	s1 := "s1"
+	// Seed two custom personas for session s1
+	repo.personas = append(repo.personas,
+		storage.Persona{ID: 100, SessionID: &s1, Name: "P1", Blueprint: "{}", IsDefault: false, CreatedAt: time.Now()},
+		storage.Persona{ID: 101, SessionID: &s1, Name: "P2", Blueprint: "{}", IsDefault: false, CreatedAt: time.Now()},
+	)
 
+	svc := NewService(repo)
+	h := NewHandler(svc)
+	jwtSvc := auth.NewJWTService("secret", 30)
+	r := gin.New()
+	api := r.Group("/api")
+	RegisterRoutes(api, h, jwtSvc)
+
+	// by-session with query param (no auth)
+	req := httptest.NewRequest(http.MethodGet, "/api/personas/by-session?session_id=s1", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 got %d body=%s", w.Code, w.Body.String())
+	}
+	var resp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(resp.Data) != 2 {
+		t.Fatalf("expected 2 personas for session s1, got %d", len(resp.Data))
+	}
+
+	// by-session with X-Session-ID header
+	req2 := httptest.NewRequest(http.MethodGet, "/api/personas/by-session", nil)
+	req2.Header.Set("X-Session-ID", "s1")
+	w2 := httptest.NewRecorder()
+	r.ServeHTTP(w2, req2)
+	if w2.Code != http.StatusOK {
+		t.Fatalf("expected 200 got %d", w2.Code)
+	}
+
+	// missing session_id returns 400
+	req3 := httptest.NewRequest(http.MethodGet, "/api/personas/by-session", nil)
+	w3 := httptest.NewRecorder()
+	r.ServeHTTP(w3, req3)
+	if w3.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 when session_id missing, got %d", w3.Code)
+	}
+}

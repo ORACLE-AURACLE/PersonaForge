@@ -135,7 +135,7 @@ definitions:
       status:
         type: string
     type: object
-host: persona-forge-ffce.onrender.com
+host: localhost:8080
 info:
   contact:
     email: support@personaforge.com
@@ -523,8 +523,49 @@ paths:
       summary: Get a persona by ID
       tags:
       - personas
+  /api/personas/by-session:
+    get:
+      consumes:
+      - application/json
+      description: Get all custom personas created by the given session. Open to all
+        (no auth). Pass session_id as query param or X-Session-ID header.
+      parameters:
+      - description: Session ID (or use X-Session-ID header)
+        in: query
+        name: session_id
+        required: true
+        type: string
+      - description: Session ID (alternative to query param)
+        in: header
+        name: X-Session-ID
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/persona.PersonaResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: List personas by session ID
+      tags:
+      - personas
 schemes:
-- https
+- http
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token

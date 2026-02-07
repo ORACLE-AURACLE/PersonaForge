@@ -209,6 +209,40 @@ func (r *Repository) ListPersonasForSession(sessionID string) ([]storage.Persona
 	return personas, rows.Err()
 }
 
+// ListCustomPersonasForSession returns only custom personas created by the given session.
+func (r *Repository) ListCustomPersonasForSession(sessionID string) ([]storage.Persona, error) {
+	query := `
+		SELECT id, user_id, session_id, name, blueprint, is_default, created_at
+		FROM personas
+		WHERE session_id = $1
+		ORDER BY created_at DESC
+	`
+	rows, err := r.db.Query(query, sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list personas for session: %w", err)
+	}
+	defer rows.Close()
+
+	var personas []storage.Persona
+	for rows.Next() {
+		var persona storage.Persona
+		err := rows.Scan(
+			&persona.ID,
+			&persona.UserID,
+			&persona.SessionID,
+			&persona.Name,
+			&persona.Blueprint,
+			&persona.IsDefault,
+			&persona.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan persona: %w", err)
+		}
+		personas = append(personas, persona)
+	}
+	return personas, rows.Err()
+}
+
 // CountCustomPersonasForUser counts non-default personas for a user
 func (r *Repository) CountCustomPersonasForUser(userID int) (int, error) {
 	var count int

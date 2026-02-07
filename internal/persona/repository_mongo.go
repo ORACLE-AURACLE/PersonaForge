@@ -259,6 +259,28 @@ func (r *MongoRepository) ListPersonasForSession(sessionID string) ([]storage.Pe
 	return personas, nil
 }
 
+// ListCustomPersonasForSession returns only custom personas created by the given session.
+func (r *MongoRepository) ListCustomPersonasForSession(sessionID string) ([]storage.Persona, error) {
+	ctx := context.TODO()
+	collection := r.db.Database.Collection("personas")
+	filter := bson.M{"session_id": sessionID}
+	opts := options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}})
+	cursor, err := collection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list personas for session: %w", err)
+	}
+	defer cursor.Close(ctx)
+	var results []bson.M
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, fmt.Errorf("failed to decode personas: %w", err)
+	}
+	personas := make([]storage.Persona, 0, len(results))
+	for _, doc := range results {
+		personas = append(personas, *r.bsonToPersona(doc))
+	}
+	return personas, nil
+}
+
 // CountCustomPersonasForUser counts non-default personas for a user
 func (r *MongoRepository) CountCustomPersonasForUser(userID int) (int, error) {
 	ctx := context.TODO()

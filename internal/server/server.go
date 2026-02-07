@@ -114,6 +114,7 @@ func (s *Server) Setup(ctx context.Context) error {
 		GetPersonaByID(id int) (*storage.Persona, error)
 		ListPersonasForUser(userID int) ([]storage.Persona, error)
 		ListPersonasForSession(sessionID string) ([]storage.Persona, error)
+		ListCustomPersonasForSession(sessionID string) ([]storage.Persona, error)
 		ListDefaultPersonas() ([]storage.Persona, error)
 		DeletePersona(id int, userID int) error
 		InitializeDefaultPersonas() error

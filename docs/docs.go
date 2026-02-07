@@ -516,6 +516,71 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/personas/by-session": {
+            "get": {
+                "description": "Get all custom personas created by the given session. Open to all (no auth). Pass session_id as query param or X-Session-ID header.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "personas"
+                ],
+                "summary": "List personas by session ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID (or use X-Session-ID header)",
+                        "name": "session_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Session ID (alternative to query param)",
+                        "name": "X-Session-ID",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/persona.PersonaResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/personas/{id}": {
             "get": {
                 "description": "Retrieve details of a specific persona",
@@ -845,9 +910,9 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "persona-forge-ffce.onrender.com",
+	Host:             "localhost:8080",
 	BasePath:         "/",
-	Schemes:          []string{"https"},
+	Schemes:          []string{"http"},
 	Title:            "PersonaForge API",
 	Description:      "Security-first backend for AI persona simulation",
 	InfoInstanceName: "swagger",

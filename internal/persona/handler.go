@@ -57,6 +57,37 @@ func (h *Handler) ListPersonas(c *gin.Context) {
 	response.Success(c, personas)
 }
 
+// ListPersonasBySession godoc
+// @Summary List personas by session ID
+// @Description Get all custom personas created by the given session. Open to all (no auth). Pass session_id as query param or X-Session-ID header.
+// @Tags personas
+// @Accept json
+// @Produce json
+// @Param session_id query string true "Session ID (or use X-Session-ID header)"
+// @Param X-Session-ID header string false "Session ID (alternative to query param)"
+// @Success 200 {object} response.APIResponse{data=[]PersonaResponse}
+// @Failure 400 {object} response.APIResponse
+// @Failure 500 {object} response.APIResponse
+// @Router /api/personas/by-session [get]
+func (h *Handler) ListPersonasBySession(c *gin.Context) {
+	sessionID := c.Query("session_id")
+	if sessionID == "" {
+		sessionID = c.GetHeader("X-Session-ID")
+	}
+	if sessionID == "" {
+		response.BadRequest(c, "session_id is required (query param or X-Session-ID header)")
+		return
+	}
+
+	personas, err := h.service.ListPersonasBySessionID(sessionID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve personas for session")
+		return
+	}
+
+	response.Success(c, personas)
+}
+
 // GetPersona godoc
 // @Summary Get a persona by ID
 // @Description Retrieve details of a specific persona

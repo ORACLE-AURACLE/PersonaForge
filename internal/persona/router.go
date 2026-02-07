@@ -12,6 +12,7 @@ func RegisterRoutes(router *gin.RouterGroup, handler *Handler, jwtService *auth.
 	{
 		// Public routes (with optional auth)
 		personas.GET("", middleware.OptionalAuthMiddleware(jwtService), handler.ListPersonas)
+		personas.GET("/by-session", handler.ListPersonasBySession) // no auth; session_id query or X-Session-ID header
 		personas.GET("/:id", handler.GetPersona)
 
 		// Protected routes (require auth)
