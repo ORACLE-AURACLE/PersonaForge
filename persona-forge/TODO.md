@@ -1,5 +1,7 @@
-# TODO: Replace "Loading persona..." with Fancy Animation
+# TODO: Implement Direct Navigation to PersonaChat After Persona Creation
 
-- [x] Replace `<p>Loading persona...</p>` in PersonaChat.jsx with a `<div className="loading-spinner">` containing a spinning loader element
-- [x] Add CSS styles in App.css for `.loading-spinner` to center the animation on the page and include a smooth spinning animation
-- [x] Test the changes to ensure the animation displays correctly during loading state
+## Steps to Complete:
+- [ ] Modify handleSubmit in CreatePersona.jsx to capture the response from createPersona
+- [ ] Extract the new persona ID from the response
+- [ ] Navigate to `/personas/${newPersonaId}` instead of "/personas"
+- [ ] Add error handling if the response doesn't contain the expected ID

@@ -50,8 +50,12 @@ export default function CreatePersona() {
         },
       };
 
-      await createPersona(name, payload.blueprint);
-      navigate("/personas");
+      const response = await createPersona(name, payload.blueprint);
+      const newPersonaId = response?.data?.id;
+      if (!newPersonaId) {
+        throw new Error("Failed to retrieve new persona ID");
+      }
+      navigate(`/personas/${newPersonaId}`);
     } catch (err) {
       setError(err.message || "Failed to create persona");
     } finally {
