@@ -299,6 +299,7 @@
   background: #faf6ed;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden !important;
 }
 
 /*HEADER */
@@ -405,6 +406,7 @@
 .insights-panel {
   flex: 1 1 0;
   border-radius: 16px;
+  width: 100%;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -454,29 +456,58 @@
   flex: 1;
   padding-top: 24px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .message {
   display: flex;
   flex-direction: column;
   margin-bottom: 16px;
+  animation: fadeIn 0.5s ease-in;
 }
 
 .persona-msg {
   align-self: flex-start;
-  max-width: 75%;
-    background-color: #f0eae0;
-    padding: 10px;
-    border-radius: 5px;
+  background-color: #f0eae0;
+  padding: 10px;
+  border-radius: 5px;
+  max-width: 60%;
 }
+.persona-msg .persona-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-style: italic;
+  color: #555;
+  padding: 0.5rem;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  min-height: 1.5rem;
+}
+
+.spinner-small {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #ccc;
+  border-top-color: #555;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 
 .user-msg {
   align-self: flex-end;
   margin-left: auto;
-  max-width: 75%;
-   background-color: #d4c5a9;
-    padding: 10px;
-    border-radius: 5px;
+  background-color: #d4c5a9;
+  padding: 10px;
+  /* text-align: right; */
+  max-width: 60%;
+  border-radius: 5px;
 }
 
 .persona-bubble,
@@ -486,6 +517,7 @@
   color: #1a1a1a;
   word-wrap: break-word;
   white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
 
 .persona-bubble {
@@ -557,6 +589,7 @@
   border-radius: 12px;
   font-size: 1rem;
   background-color: #f0eae0;
+  color: #1a1a1a;
 }
 
 .chat-input button {
@@ -618,6 +651,8 @@
 /* Insights */
 .insights-panel {
   padding: 32px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .insights-panel p {
@@ -638,6 +673,18 @@
 
 .insight-item {
   margin-bottom: 24px;
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .insight-item strong {
@@ -960,6 +1007,7 @@
   .chat-body {
     padding: 0 16px 24px;
     gap: 0;
+    overflow: hidden;
   }
   .chat-content {
     padding: 0px !important;

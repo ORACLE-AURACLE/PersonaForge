@@ -1,7 +1,8 @@
-# TODO: Implement Direct Navigation to PersonaChat After Persona Creation
+# TODO: Integrate Custom Markdown Parser into Chat and Insights
 
-## Steps to Complete:
-- [ ] Modify handleSubmit in CreatePersona.jsx to capture the response from createPersona
-- [ ] Extract the new persona ID from the response
-- [ ] Navigate to `/personas/${newPersonaId}` instead of "/personas"
-- [ ] Add error handling if the response doesn't contain the expected ID
+## Tasks
+- [x] Filter markdown.jsx: Remove table parsing, code block handling, and blockquotes to simplify for chat/insights workflow.
+- [x] Update persona-forge/src/pages/PersonaChat.jsx: Replace ReactMarkdown import and usage with parseMarkdown from custom markdown.jsx.
+- [x] Update persona-forge/src/components/PersonaChat.jsx: Replace ReactMarkdown import and usage with parseMarkdown from custom markdown.jsx.
+- [x] Test rendering in chat and insights panels to ensure markdown displays correctly.
+- [x] Verify no console errors and that security utils work properly.

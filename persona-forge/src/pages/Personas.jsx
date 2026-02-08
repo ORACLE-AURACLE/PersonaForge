@@ -96,7 +96,7 @@ export default function Personas() {
 
       <div className="personaContent">
         <div className="persona-header">
-          <h1>Choose One of 4 Default Personas</h1>
+          <h1>Choose a Default Persona</h1>
           <p>
             Select someone to talk to. Each persona has distinct motivations,
             constraints, and decision-making patterns.

@@ -10,7 +10,7 @@ import {
 import { v4 as uuidv4 } from "uuid"; // to generate guest session IDs
 import logo from "../assets/images/Main-Logo.svg";
 import "../App.css";
-import ReactMarkdown from "react-markdown";
+import { parseMarkdown } from "../assets/markdown/markdown";
 
 export default function PersonaChat({ contextSessionId, setSessionId }) {
   const { id } = useParams();
@@ -24,6 +24,7 @@ export default function PersonaChat({ contextSessionId, setSessionId }) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [insights, setInsights] = useState([]);
+  const [insightsLoading, setInsightsLoading] = useState(false);
   const [sending, setSending] = useState(false);
 
   const [sessionId, setLocalSessionId] = useState(null);
@@ -55,6 +56,29 @@ export default function PersonaChat({ contextSessionId, setSessionId }) {
         return;
       }
       setPersona(personaResponse.data);
+
+      // Load insights from localStorage
+      const storedInsights = localStorage.getItem(`insights_${sid}_${id}`);
+      if (storedInsights) {
+        setInsights(JSON.parse(storedInsights));
+      }
+
+      // Fetch insights from backend on mount for rehydration
+      setInsightsLoading(true);
+      const insightsResponse = await getInsights(sid, id);
+      console.log("Insights rehydration API response:", insightsResponse);
+      if (insightsResponse?.status === "success" && insightsResponse.data) {
+        let parsed = [];
+        if (Array.isArray(insightsResponse.data))
+          parsed = insightsResponse.data;
+        else if (typeof insightsResponse.data === "string")
+          parsed = parseAnalysis(insightsResponse.data);
+        else if (insightsResponse.data.analysis)
+          parsed = parseAnalysis(insightsResponse.data.analysis);
+        setInsights(parsed);
+        localStorage.setItem(`insights_${sid}_${id}`, JSON.stringify(parsed));
+      }
+      setInsightsLoading(false);
 
       // Use getChatHistory instead of direct fetch for consistency
       const historyResponse = await getChatHistory(sid, id);
@@ -168,14 +192,27 @@ export default function PersonaChat({ contextSessionId, setSessionId }) {
 
       const assistantMessage = response.data.message.content;
 
+      // Add user message and temporary loading message
       setMessages((prev) => [
         ...prev,
         { text: message, sender: "user" },
-        { text: assistantMessage, sender: "persona" },
+        { text: "Thinking...", sender: "persona", loading: true },
       ]);
+
+      // Simulate delay or wait for response, then replace loading with actual message
+      setTimeout(() => {
+        setMessages((prev) =>
+          prev.map((msg, idx) =>
+            idx === prev.length - 1 && msg.loading
+              ? { text: assistantMessage, sender: "persona" }
+              : msg,
+          ),
+        );
+      }, 500); // Adjust delay as needed
       setMessage("");
 
       // Fetch insights safely
+      setInsightsLoading(true);
       const insightsResponse = await getInsights(sessionId, personaId);
       console.log("Insights API response:", insightsResponse);
 
@@ -188,7 +225,20 @@ export default function PersonaChat({ contextSessionId, setSessionId }) {
         else if (insightsResponse.data.analysis)
           parsed = parseAnalysis(insightsResponse.data.analysis);
       }
-      setInsights(parsed);
+
+      // Prevent duplicates by checking existing insights
+      setInsights((prev) => {
+        const existingTitles = new Set(prev.map((i) => i.title));
+        const newInsights = parsed.filter((i) => !existingTitles.has(i.title));
+        const updated = [...prev, ...newInsights];
+        // Persist to localStorage
+        localStorage.setItem(
+          `insights_${sessionId}_${personaId}`,
+          JSON.stringify(updated),
+        );
+        return updated;
+      });
+      setInsightsLoading(false);
     } catch (err) {
       console.error("Error in handleSend:", err);
       setError(err.message);
@@ -262,7 +312,7 @@ export default function PersonaChat({ contextSessionId, setSessionId }) {
                       msg.sender === "user" ? "user-msg" : "persona-msg"
                     }`}
                   >
-                    <ReactMarkdown children={msg.text} />
+                    {parseMarkdown(msg.text)}
                   </div>
                 ))}
                 <div ref={chatEndRef} />
@@ -291,15 +341,24 @@ export default function PersonaChat({ contextSessionId, setSessionId }) {
               <p className="insights-placeholder">
                 No session available to fetch insights.
               </p>
+            ) : insightsLoading ? (
+              <div className="insights-loading">
+                <p>Generating insights...</p>
+                <div className="insight-skeleton">
+                  <div className="skeleton-title"></div>
+                  <div className="skeleton-text"></div>
+                  <div className="skeleton-text short"></div>
+                </div>
+              </div>
             ) : insights.length === 0 ? (
               <p className="insights-placeholder">
                 Insights will appear here as you converse with {firstName}.
               </p>
             ) : (
               insights.map((insight, idx) => (
-                <div key={idx} className="insight-item">
+                <div key={idx} className="insight-item fade-in">
                   <h5 style={{ marginBottom: "0.25rem" }}>{insight.title}</h5>
-                  <ReactMarkdown children={insight.text} />
+                  {parseMarkdown(insight.text)}
                 </div>
               ))
             )}
