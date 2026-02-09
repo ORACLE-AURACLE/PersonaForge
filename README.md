@@ -29,9 +29,9 @@ PersonaForge is an AI platform that simulates realistic user personas to validat
 
 
 ## Tech Stack
-- **Frontend:** Next.js + React  
-- **Backend:** Node.js  
-- **AI:** Google Gemini 3 API  
+- **Frontend:** React, Vercel 
+- **Backend:** Golang, MongoDb, Render
+- **AI:** Google Gemini API  
 - **Architecture:** Persona-isolated sessions  
 
 
@@ -46,7 +46,7 @@ PersonaForge is an AI platform that simulates realistic user personas to validat
 
 ## Testing Instructions
 - No login required.  
-- Visit the live demo, select a persona, ask a question, see responses and insights.
+- Visit the live demo, select a persona, or create a custom persona, ask a question, see responses and insights.
 
 
 
